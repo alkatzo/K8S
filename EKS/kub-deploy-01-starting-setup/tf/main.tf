@@ -53,6 +53,15 @@ module "eks" {
 
       instance_types = [var.node_group_instance_type]
 
+      # Place nodes in public subnets and enable public IPs
+      subnet_ids = module.vpc.public_subnets
+      
+      # Enable public IP assignment via launch template
+      network_interfaces = [{
+        associate_public_ip_address = true
+        delete_on_termination       = true
+      }]
+
       # attach key pair if provided
       key_name = var.key_name != "" ? var.key_name : (var.create_ssh_key ? aws_key_pair.worker[0].key_name : null)
     }

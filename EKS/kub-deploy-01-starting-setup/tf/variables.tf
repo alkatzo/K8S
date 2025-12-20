@@ -55,7 +55,7 @@ variable "node_group_min_size" {
 
 variable "node_group_desired_size" {
   type    = number
-  default = 2
+  default = 1
 }
 
 variable "node_group_max_size" {
