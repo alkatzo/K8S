@@ -1,0 +1,150 @@
+apiVersion: "acid.zalan.do/v1"
+kind: postgresql
+metadata:
+  name: users-db-cluster
+  namespace: default
+  labels:
+    app: postgres
+    team: users-team
+spec:
+  # Team identifier
+  teamId: "users-team"
+  
+  # PostgreSQL version
+  version: "15"
+  
+  # Number of instances (1 primary + replicas)
+  # 2 = 1 primary + 1 replica
+  # 3 = 1 primary + 2 replicas (recommended)
+  numberOfInstances: 3
+  
+  # Users to create
+  users:
+    # Superuser
+    postgres:
+    - superuser
+    - createdb
+    
+    # Application user
+    appuser:
+    - login
+  
+  # Databases to create
+  databases:
+    users: appuser  # Database 'users' owned by 'appuser'
+  
+  # PostgreSQL configuration parameters
+  postgresql:
+    version: "15"
+    parameters:
+      # Connection settings
+      max_connections: "200"
+      
+      # Memory settings
+      shared_buffers: "256MB"
+      effective_cache_size: "1GB"
+      work_mem: "4MB"
+      maintenance_work_mem: "64MB"
+      
+      # WAL settings
+      wal_level: replica
+      max_wal_senders: "10"
+      max_replication_slots: "10"
+      
+      # Logging
+      log_line_prefix: "%t [%p]: [%l-1] user=%u,db=%d,app=%a,client=%h "
+      log_timezone: "UTC"
+      
+      # Performance
+      random_page_cost: "1.1"
+      effective_io_concurrency: "200"
+  
+  # Volume configuration (EBS backed)
+  volume:
+    size: 10Gi
+    storageClass: ebs-gp3
+    # Each pod gets its own EBS volume
+  
+  # Resource limits per PostgreSQL pod
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+  
+  # Enable connection pooler (PgBouncer)
+  enableConnectionPooler: true
+  connectionPooler:
+    numberOfInstances: 2
+    mode: "transaction"  # Options: session, transaction, statement
+    schema: "pooler"
+    user: "pooler"
+    resources:
+      requests:
+        cpu: 100m
+        memory: 128Mi
+      limits:
+        cpu: 300m
+        memory: 256Mi
+  
+  # Patroni configuration (HA/Failover)
+  patroni:
+    # Time to live for leader lock
+    ttl: 30
+    
+    # Interval between checks
+    loop_wait: 10
+    
+    # Timeout for retry
+    retry_timeout: 10
+    
+    # Synchronous replication (false = async)
+    synchronous_mode: false
+    synchronous_mode_strict: false
+    
+    # Maximum lag before failover
+    maximum_lag_on_failover: 33554432  # 32MB
+  
+  # Service annotations (optional)
+  serviceAnnotations:
+    service.beta.kubernetes.io/aws-load-balancer-type: "nlb"
+  
+  # Pod annotations (optional)
+  podAnnotations:
+    backup.velero.io/backup-volumes: pgdata
+  
+  # Node affinity (optional - spread across nodes)
+  nodeAffinity:
+    requiredDuringSchedulingIgnoredDuringExecution:
+      nodeSelectorTerms:
+      - matchExpressions:
+        - key: kubernetes.io/arch
+          operator: In
+          values:
+          - amd64
+  
+  # Pod anti-affinity (spread replicas across nodes)
+  podAntiAffinity:
+    preferredDuringSchedulingIgnoredDuringExecution:
+    - weight: 100
+      podAffinityTerm:
+        labelSelector:
+          matchLabels:
+            cluster-name: users-db-cluster
+        topologyKey: kubernetes.io/hostname
+
+---
+# Optional: Backup configuration (requires S3 bucket)
+# Uncomment and configure if you want automated backups
+
+# apiVersion: v1
+# kind: ConfigMap
+# metadata:
+#   name: postgres-backup-config
+# data:
+#   WAL_S3_BUCKET: "my-postgres-backups-bucket"
+#   AWS_REGION: "ap-southeast-2"
+#   BACKUP_SCHEDULE: "0 2 * * *"  # Daily at 2 AM
+#   BACKUP_NUM_TO_RETAIN: "7"

@@ -17,7 +17,7 @@ argoWorkflow:
 # PostgreSQL configuration
 postgresql:
   enabled: true
-  replicas: 2
+  replicas: 1  # One PostgreSQL instance per namespace (master and slave)
   image:
     repository: postgres
     tag: "15-alpine"
