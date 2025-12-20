@@ -1,0 +1,41 @@
+1. Get the task executor logs from the master namespace:
+
+  kubectl logs -n {{ .Values.replication.namespaces.master }} -l app=task-executor -f
+
+2. Get the task executor logs from the slave namespace:
+
+  kubectl logs -n {{ .Values.replication.namespaces.slave }} -l app=task-executor -f
+
+3. Check the status of jobs in master namespace:
+
+  kubectl get jobs -n {{ .Values.replication.namespaces.master }}
+
+4. Check the status of jobs in slave namespace:
+
+  kubectl get jobs -n {{ .Values.replication.namespaces.slave }}
+
+5. Access PostgreSQL in master namespace:
+
+  kubectl run psql-client --rm -it --restart=Never \
+    --namespace {{ .Values.replication.namespaces.master }} \
+    --image postgres:15-alpine \
+    --env="PGPASSWORD={{ .Values.postgresql.auth.password }}" \
+    -- psql -h postgres-service -U {{ .Values.postgresql.auth.username }} -d {{ .Values.postgresql.auth.database }}
+
+6. Access PostgreSQL in slave namespace:
+
+  kubectl run psql-client --rm -it --restart=Never \
+    --namespace {{ .Values.replication.namespaces.slave }} \
+    --image postgres:15-alpine \
+    --env="PGPASSWORD={{ .Values.postgresql.auth.password }}" \
+    -- psql -h postgres-service -U {{ .Values.postgresql.auth.username }} -d {{ .Values.postgresql.auth.database }}
+
+7. Query tasks:
+
+  SELECT * FROM tasks ORDER BY created_at;
+  SELECT COUNT(*), status FROM tasks GROUP BY status;
+
+8. To uninstall:
+
+  helm uninstall {{ .Release.Name }}
+  kubectl delete namespace {{ .Values.replication.namespaces.master }} {{ .Values.replication.namespaces.slave }}

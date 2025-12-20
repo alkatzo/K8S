@@ -1,0 +1,55 @@
+{{- if .Values.jobA.enabled }}
+{{- range $role := list "master" "slave" }}
+{{- $namespace := "" }}
+{{- if eq $role "master" }}
+{{- $namespace = $.Values.replication.namespaces.master }}
+{{- else }}
+{{- $namespace = $.Values.replication.namespaces.slave }}
+{{- end }}
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: job-a
+  namespace: {{ $namespace }}
+  labels:
+    app: job-a
+    role: {{ $role }}
+spec:
+  ttlSecondsAfterFinished: 300
+  backoffLimit: 3
+  template:
+    metadata:
+      labels:
+        app: job-a
+        role: {{ $role }}
+    spec:
+      restartPolicy: OnFailure
+      containers:
+      - name: job-a
+        image: "{{ $.Values.jobA.image.repository }}:{{ $.Values.jobA.image.tag }}"
+        imagePullPolicy: {{ $.Values.jobA.image.pullPolicy }}
+        env:
+        - name: POSTGRES_HOST
+          value: "postgres-service.{{ $namespace }}.svc.cluster.local"
+        - name: POSTGRES_PORT
+          value: "5432"
+        - name: POSTGRES_DB
+          valueFrom:
+            secretKeyRef:
+              name: postgres-secret
+              key: POSTGRES_DB
+        - name: POSTGRES_USER
+          valueFrom:
+            secretKeyRef:
+              name: postgres-secret
+              key: POSTGRES_USER
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: postgres-secret
+              key: POSTGRES_PASSWORD
+        resources:
+          {{- toYaml $.Values.jobA.resources | nindent 10 }}
+{{- end }}
+{{- end }}

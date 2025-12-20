@@ -1,0 +1,142 @@
+{{- if .Values.postgresql.enabled }}
+{{- range $role := list "master" "slave" }}
+{{- $namespace := "" }}
+{{- if eq $role "master" }}
+{{- $namespace = $.Values.replication.namespaces.master }}
+{{- else }}
+{{- $namespace = $.Values.replication.namespaces.slave }}
+{{- end }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: postgres-init-script
+  namespace: {{ $namespace }}
+data:
+  init.sql: |
+    CREATE TABLE IF NOT EXISTS tasks (
+      id SERIAL PRIMARY KEY,
+      task_name VARCHAR(255) NOT NULL,
+      status VARCHAR(50) DEFAULT 'pending',
+      created_by VARCHAR(50) NOT NULL,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      completed_at TIMESTAMP
+    );
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: postgres-secret
+  namespace: {{ $namespace }}
+type: Opaque
+stringData:
+  POSTGRES_DB: {{ $.Values.postgresql.auth.database }}
+  POSTGRES_USER: {{ $.Values.postgresql.auth.username }}
+  POSTGRES_PASSWORD: {{ $.Values.postgresql.auth.password }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres-service
+  namespace: {{ $namespace }}
+  labels:
+    app: postgres
+    role: {{ $role }}
+spec:
+  type: ClusterIP
+  clusterIP: None  # Headless service for StatefulSet
+  ports:
+    - port: 5432
+      targetPort: 5432
+      protocol: TCP
+      name: postgres
+  selector:
+    app: postgres
+    role: {{ $role }}
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: postgres
+  namespace: {{ $namespace }}
+  labels:
+    app: postgres
+    role: {{ $role }}
+spec:
+  serviceName: postgres-service
+  replicas: {{ $.Values.postgresql.replicas }}
+  selector:
+    matchLabels:
+      app: postgres
+      role: {{ $role }}
+  template:
+    metadata:
+      labels:
+        app: postgres
+        role: {{ $role }}
+    spec:
+      containers:
+      - name: postgres
+        image: "{{ $.Values.postgresql.image.repository }}:{{ $.Values.postgresql.image.tag }}"
+        imagePullPolicy: {{ $.Values.postgresql.image.pullPolicy }}
+        ports:
+        - containerPort: 5432
+          name: postgres
+        env:
+        - name: POSTGRES_DB
+          valueFrom:
+            secretKeyRef:
+              name: postgres-secret
+              key: POSTGRES_DB
+        - name: POSTGRES_USER
+          valueFrom:
+            secretKeyRef:
+              name: postgres-secret
+              key: POSTGRES_USER
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: postgres-secret
+              key: POSTGRES_PASSWORD
+        - name: PGDATA
+          value: /var/lib/postgresql/data/pgdata
+        volumeMounts:
+        - name: postgres-storage
+          mountPath: /var/lib/postgresql/data
+        - name: init-script
+          mountPath: /docker-entrypoint-initdb.d
+        resources:
+          {{- toYaml $.Values.postgresql.resources | nindent 10 }}
+        livenessProbe:
+          exec:
+            command:
+            - pg_isready
+            - -U
+            - {{ $.Values.postgresql.auth.username }}
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          exec:
+            command:
+            - pg_isready
+            - -U
+            - {{ $.Values.postgresql.auth.username }}
+          initialDelaySeconds: 5
+          periodSeconds: 5
+      volumes:
+      - name: init-script
+        configMap:
+          name: postgres-init-script
+  volumeClaimTemplates:
+  - metadata:
+      name: postgres-storage
+    spec:
+      accessModes: [ "ReadWriteOnce" ]
+      {{- if $.Values.postgresql.persistence.storageClass }}
+      storageClassName: {{ $.Values.postgresql.persistence.storageClass }}
+      {{- end }}
+      resources:
+        requests:
+          storage: {{ $.Values.postgresql.persistence.size }}
+{{- end }}
+{{- end }}

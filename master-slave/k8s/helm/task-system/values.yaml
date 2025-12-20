@@ -1,0 +1,101 @@
+# Default values for task-system
+# This is a YAML-formatted file.
+
+# Master-Slave configuration
+replication:
+  enabled: true
+  namespaces:
+    master: "task-system-master"
+    slave: "task-system-slave"
+
+# PostgreSQL configuration
+postgresql:
+  enabled: true
+  replicas: 2
+  image:
+    repository: postgres
+    tag: "15-alpine"
+    pullPolicy: IfNotPresent
+  
+  auth:
+    database: taskdb
+    username: postgres
+    password: postgres123
+  
+  resources:
+    requests:
+      memory: "256Mi"
+      cpu: "250m"
+    limits:
+      memory: "512Mi"
+      cpu: "500m"
+  
+  persistence:
+    enabled: true
+    storageClass: ""  # Use default storage class
+    size: 1Gi
+
+# Job A configuration
+jobA:
+  enabled: true
+  image:
+    repository: job-a
+    tag: latest
+    pullPolicy: IfNotPresent
+  
+  resources:
+    requests:
+      memory: "128Mi"
+      cpu: "100m"
+    limits:
+      memory: "256Mi"
+      cpu: "200m"
+
+# Job B configuration
+jobB:
+  enabled: true
+  image:
+    repository: job-b
+    tag: latest
+    pullPolicy: IfNotPresent
+  
+  resources:
+    requests:
+      memory: "128Mi"
+      cpu: "100m"
+    limits:
+      memory: "256Mi"
+      cpu: "200m"
+
+# Job C configuration
+jobC:
+  enabled: true
+  image:
+    repository: job-c
+    tag: latest
+    pullPolicy: IfNotPresent
+  
+  resources:
+    requests:
+      memory: "128Mi"
+      cpu: "100m"
+    limits:
+      memory: "256Mi"
+      cpu: "200m"
+
+# Task Executor Service configuration
+taskExecutor:
+  enabled: true
+  replicas: 2
+  image:
+    repository: task-executor
+    tag: latest
+    pullPolicy: IfNotPresent
+  
+  resources:
+    requests:
+      memory: "128Mi"
+      cpu: "100m"
+    limits:
+      memory: "256Mi"
+      cpu: "200m"

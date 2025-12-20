@@ -1,0 +1,73 @@
+{{- if .Values.taskExecutor.enabled }}
+{{- range $role := list "master" "slave" }}
+{{- $namespace := "" }}
+{{- if eq $role "master" }}
+{{- $namespace = $.Values.replication.namespaces.master }}
+{{- else }}
+{{- $namespace = $.Values.replication.namespaces.slave }}
+{{- end }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: task-executor
+  namespace: {{ $namespace }}
+  labels:
+    app: task-executor
+    role: {{ $role }}
+spec:
+  replicas: {{ $.Values.taskExecutor.replicas }}
+  selector:
+    matchLabels:
+      app: task-executor
+      role: {{ $role }}
+  template:
+    metadata:
+      labels:
+        app: task-executor
+        role: {{ $role }}
+    spec:
+      containers:
+      - name: task-executor
+        image: "{{ $.Values.taskExecutor.image.repository }}:{{ $.Values.taskExecutor.image.tag }}"
+        imagePullPolicy: {{ $.Values.taskExecutor.image.pullPolicy }}
+        env:
+        - name: POSTGRES_HOST
+          value: "postgres-service.{{ $namespace }}.svc.cluster.local"
+        - name: POSTGRES_PORT
+          value: "5432"
+        - name: POSTGRES_DB
+          valueFrom:
+            secretKeyRef:
+              name: postgres-secret
+              key: POSTGRES_DB
+        - name: POSTGRES_USER
+          valueFrom:
+            secretKeyRef:
+              name: postgres-secret
+              key: POSTGRES_USER
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: postgres-secret
+              key: POSTGRES_PASSWORD
+        - name: POD_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        - name: POD_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        resources:
+          {{- toYaml $.Values.taskExecutor.resources | nindent 10 }}
+        livenessProbe:
+          exec:
+            command:
+            - python
+            - -c
+            - "import sys; sys.exit(0)"
+          initialDelaySeconds: 30
+          periodSeconds: 30
+{{- end }}
+{{- end }}

@@ -1,0 +1,38 @@
+{{- range $role := list "master" "slave" }}
+{{- $namespace := "" }}
+{{- if eq $role "master" }}
+{{- $namespace = $.Values.replication.namespaces.master }}
+{{- else }}
+{{- $namespace = $.Values.replication.namespaces.slave }}
+{{- end }}
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: job-executor
+  namespace: {{ $namespace }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: job-executor-role
+  namespace: {{ $namespace }}
+rules:
+- apiGroups: ["batch"]
+  resources: ["jobs"]
+  verbs: ["get", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: job-executor-rolebinding
+  namespace: {{ $namespace }}
+subjects:
+- kind: ServiceAccount
+  name: job-executor
+  namespace: {{ $namespace }}
+roleRef:
+  kind: Role
+  name: job-executor-role
+  apiGroup: rbac.authorization.k8s.io
+{{- end }}
