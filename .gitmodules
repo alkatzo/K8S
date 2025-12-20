@@ -1,0 +1,3 @@
+[submodule "kub-deploy-01-starting-setup/tf-eks"]
+	path = kub-deploy-01-starting-setup/tf-eks
+	url = https://github.com/alkatzo/TF.git
