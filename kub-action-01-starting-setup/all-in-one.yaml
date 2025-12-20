@@ -1,0 +1,38 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: second-app-service
+  labels:
+    group: second-app
+spec:
+  selector:
+    app: second-app
+    tier: backend
+  ports:
+  - protocol: TCP
+    port: 80
+    targetPort: 8080
+  type: LoadBalancer
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: second-app-deployment
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: second-app
+      tier: backend
+  template:
+    metadata:
+      labels:
+        app: second-app
+        tier: backend
+    spec:
+      containers:
+      - name: second-app-container
+        image: alkatzo/kub-fist-app:3.0
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 8080

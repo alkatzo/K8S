@@ -1,0 +1,13 @@
+app/build/
+build/
+out/
+core.*
+run/cfg/risk-jwt-hs256-secret.DEVBOX.txt
+app/.cache/
+.vscode/
+.terraform/
+.terraform.lock.hcl
+*.tfstate
+*.tfstate.backup
+*.zip
+errors.err

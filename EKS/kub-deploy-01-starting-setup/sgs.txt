@@ -1,0 +1,192 @@
+{
+    "SecurityGroups": [
+        {
+            "GroupId": "sg-05b61ebd943597c1e",
+            "IpPermissionsEgress": [
+                {
+                    "IpProtocol": "tcp",
+                    "FromPort": 53,
+                    "ToPort": 53,
+                    "UserIdGroupPairs": [
+                        {
+                            "Description": "Node to node CoreDNS",
+                            "UserId": "839918632884",
+                            "GroupId": "sg-05b61ebd943597c1e"
+                        }
+                    ],
+                    "IpRanges": [],
+                    "Ipv6Ranges": [],
+                    "PrefixListIds": []
+                },
+                {
+                    "IpProtocol": "udp",
+                    "FromPort": 53,
+                    "ToPort": 53,
+                    "UserIdGroupPairs": [
+                        {
+                            "Description": "Node to node CoreDNS",
+                            "UserId": "839918632884",
+                            "GroupId": "sg-05b61ebd943597c1e"
+                        }
+                    ],
+                    "IpRanges": [],
+                    "Ipv6Ranges": [],
+                    "PrefixListIds": []
+                },
+                {
+                    "IpProtocol": "udp",
+                    "FromPort": 123,
+                    "ToPort": 123,
+                    "UserIdGroupPairs": [],
+                    "IpRanges": [
+                        {
+                            "Description": "Egress NTP/UDP to internet",
+                            "CidrIp": "0.0.0.0/0"
+                        }
+                    ],
+                    "Ipv6Ranges": [],
+                    "PrefixListIds": []
+                },
+                {
+                    "IpProtocol": "tcp",
+                    "FromPort": 443,
+                    "ToPort": 443,
+                    "UserIdGroupPairs": [
+                        {
+                            "Description": "Node groups to cluster API",
+                            "UserId": "839918632884",
+                            "GroupId": "sg-0ff643e36c030af27"
+                        }
+                    ],
+                    "IpRanges": [
+                        {
+                            "Description": "Egress all HTTPS to internet",
+                            "CidrIp": "0.0.0.0/0"
+                        }
+                    ],
+                    "Ipv6Ranges": [],
+                    "PrefixListIds": []
+                },
+                {
+                    "IpProtocol": "tcp",
+                    "FromPort": 123,
+                    "ToPort": 123,
+                    "UserIdGroupPairs": [],
+                    "IpRanges": [
+                        {
+                            "Description": "Egress NTP/TCP to internet",
+                            "CidrIp": "0.0.0.0/0"
+                        }
+                    ],
+                    "Ipv6Ranges": [],
+                    "PrefixListIds": []
+                }
+            ],
+            "Tags": [
+                {
+                    "Key": "Name",
+                    "Value": "users-eks-cluster-node"
+                },
+                {
+                    "Key": "kubernetes.io/cluster/users-eks-cluster",
+                    "Value": "owned"
+                }
+            ],
+            "VpcId": "vpc-0e8e63b66bf764841",
+            "SecurityGroupArn": "arn:aws:ec2:ap-southeast-2:839918632884:security-group/sg-05b61ebd943597c1e",
+            "OwnerId": "839918632884",
+            "GroupName": "users-eks-cluster-node-20251219024659812100000004",
+            "Description": "EKS node shared security group",
+            "IpPermissions": [
+                {
+                    "IpProtocol": "-1",
+                    "UserIdGroupPairs": [
+                        {
+                            "UserId": "839918632884",
+                            "GroupId": "sg-076180608be13aead"
+                        }
+                    ],
+                    "IpRanges": [],
+                    "Ipv6Ranges": [],
+                    "PrefixListIds": []
+                },
+                {
+                    "IpProtocol": "tcp",
+                    "FromPort": 10250,
+                    "ToPort": 10250,
+                    "UserIdGroupPairs": [
+                        {
+                            "Description": "Cluster API to node kubelets",
+                            "UserId": "839918632884",
+                            "GroupId": "sg-0ff643e36c030af27"
+                        }
+                    ],
+                    "IpRanges": [],
+                    "Ipv6Ranges": [],
+                    "PrefixListIds": []
+                },
+                {
+                    "IpProtocol": "tcp",
+                    "FromPort": 53,
+                    "ToPort": 53,
+                    "UserIdGroupPairs": [
+                        {
+                            "Description": "Node to node CoreDNS",
+                            "UserId": "839918632884",
+                            "GroupId": "sg-05b61ebd943597c1e"
+                        }
+                    ],
+                    "IpRanges": [],
+                    "Ipv6Ranges": [],
+                    "PrefixListIds": []
+                },
+                {
+                    "IpProtocol": "udp",
+                    "FromPort": 53,
+                    "ToPort": 53,
+                    "UserIdGroupPairs": [
+                        {
+                            "Description": "Node to node CoreDNS",
+                            "UserId": "839918632884",
+                            "GroupId": "sg-05b61ebd943597c1e"
+                        }
+                    ],
+                    "IpRanges": [],
+                    "Ipv6Ranges": [],
+                    "PrefixListIds": []
+                },
+                {
+                    "IpProtocol": "tcp",
+                    "FromPort": 443,
+                    "ToPort": 443,
+                    "UserIdGroupPairs": [
+                        {
+                            "Description": "Cluster API to node groups",
+                            "UserId": "839918632884",
+                            "GroupId": "sg-0ff643e36c030af27"
+                        }
+                    ],
+                    "IpRanges": [],
+                    "Ipv6Ranges": [],
+                    "PrefixListIds": []
+                }
+            ]
+        },
+        {
+            "GroupId": "sg-0706327cae84bc34d",
+            "IpPermissionsEgress": [],
+            "Tags": [
+                {
+                    "Key": "Name",
+                    "Value": "workers-eks-node-group"
+                }
+            ],
+            "VpcId": "vpc-0e8e63b66bf764841",
+            "SecurityGroupArn": "arn:aws:ec2:ap-southeast-2:839918632884:security-group/sg-0706327cae84bc34d",
+            "OwnerId": "839918632884",
+            "GroupName": "workers-eks-node-group-20251219024700356300000006",
+            "Description": "EKS managed node group security group",
+            "IpPermissions": []
+        }
+    ]
+}
