@@ -1,0 +1,56 @@
+# Argo Workflows Installation Guide
+# This file contains the installation steps for Argo Workflows
+
+---
+# Step 1: Install Argo Workflows in the cluster
+# Create a dedicated namespace for Argo
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: argo
+
+---
+# NOTE: Instead of inline YAML, use the official installation:
+# 
+# kubectl create namespace argo
+# kubectl apply -n argo -f https://github.com/argoproj/argo-workflows/releases/download/v3.5.2/install.yaml
+#
+# Or use Helm:
+# helm repo add argo https://argoproj.github.io/argo-helm
+# helm install argo-workflows argo/argo-workflows -n argo --create-namespace
+
+# Step 2: Wait for Argo to be ready
+# kubectl wait --for=condition=ready pod -l app=workflow-controller -n argo --timeout=300s
+
+# Step 3: Access Argo UI (optional)
+# kubectl -n argo port-forward deployment/argo-server 2746:2746
+# Open browser: https://localhost:2746
+
+# Step 4: Install Argo CLI (optional but recommended)
+# Linux:
+# curl -sLO https://github.com/argoproj/argo-workflows/releases/download/v3.5.2/argo-linux-amd64.gz
+# gunzip argo-linux-amd64.gz
+# chmod +x argo-linux-amd64
+# sudo mv ./argo-linux-amd64 /usr/local/bin/argo
+
+# macOS:
+# brew install argo
+
+# Step 5: Deploy your task system with Argo enabled
+# helm install task-system ./k8s/helm/task-system \
+#   --set argoWorkflow.enabled=true \
+#   --set jobA.enabled=false \
+#   --set jobB.enabled=false \
+#   --set jobC.enabled=false
+
+# Step 6: Submit a workflow
+# argo submit -n task-system-master k8s/helm/task-system/templates/workflow.yaml --watch
+
+# Step 7: List workflows
+# argo list -n task-system-master
+
+# Step 8: Get workflow details
+# argo get <workflow-name> -n task-system-master
+
+# Step 9: View logs
+# argo logs <workflow-name> -n task-system-master

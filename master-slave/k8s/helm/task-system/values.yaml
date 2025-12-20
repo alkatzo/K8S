@@ -8,6 +8,12 @@ replication:
     master: "task-system-master"
     slave: "task-system-slave"
 
+# Argo Workflows configuration
+# Set to true to use Argo Workflows instead of regular Kubernetes Jobs
+# When enabled, disable jobA, jobB, jobC by setting their enabled to false
+argoWorkflow:
+  enabled: false  # Set to true to use Argo Workflows
+
 # PostgreSQL configuration
 postgresql:
   enabled: true

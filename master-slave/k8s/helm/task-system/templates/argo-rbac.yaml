@@ -1,0 +1,56 @@
+{{- if .Values.argoWorkflow.enabled }}
+{{- range $role := list "master" "slave" }}
+{{- $namespace := "" }}
+{{- if eq $role "master" }}
+{{- $namespace = $.Values.replication.namespaces.master }}
+{{- else }}
+{{- $namespace = $.Values.replication.namespaces.slave }}
+{{- end }}
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: argo-workflow
+  namespace: {{ $namespace }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: argo-workflow-role
+  namespace: {{ $namespace }}
+rules:
+# Workflow permissions
+- apiGroups: ["argoproj.io"]
+  resources: ["workflows", "workflowtemplates", "cronworkflows", "clusterworkflowtemplates"]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+# Pod permissions (Argo creates pods for each step)
+- apiGroups: [""]
+  resources: ["pods", "pods/log"]
+  verbs: ["get", "list", "watch", "create", "delete"]
+# ConfigMap/Secret permissions
+- apiGroups: [""]
+  resources: ["configmaps"]
+  verbs: ["get", "watch", "list"]
+- apiGroups: [""]
+  resources: ["secrets"]
+  verbs: ["get"]
+# PVC permissions (for workflow volumes)
+- apiGroups: [""]
+  resources: ["persistentvolumeclaims"]
+  verbs: ["create", "delete", "get"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: argo-workflow-rolebinding
+  namespace: {{ $namespace }}
+subjects:
+- kind: ServiceAccount
+  name: argo-workflow
+  namespace: {{ $namespace }}
+roleRef:
+  kind: Role
+  name: argo-workflow-role
+  apiGroup: rbac.authorization.k8s.io
+{{- end }}
+{{- end }}

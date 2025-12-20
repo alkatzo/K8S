@@ -1,0 +1,128 @@
+{{- if .Values.argoWorkflow.enabled }}
+{{- range $role := list "master" "slave" }}
+{{- $namespace := "" }}
+{{- if eq $role "master" }}
+{{- $namespace = $.Values.replication.namespaces.master }}
+{{- else }}
+{{- $namespace = $.Values.replication.namespaces.slave }}
+{{- end }}
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  name: job-sequence-workflow
+  namespace: {{ $namespace }}
+  labels:
+    role: {{ $role }}
+spec:
+  entrypoint: sequential-jobs
+  
+  # Service account for workflow execution
+  serviceAccountName: argo-workflow
+  
+  # Workflow-level volume for shared data (optional)
+  volumeClaimTemplates:
+  - metadata:
+      name: workdir
+    spec:
+      accessModes: [ "ReadWriteOnce" ]
+      resources:
+        requests:
+          storage: 1Gi
+  
+  templates:
+  # Main workflow - sequential execution
+  - name: sequential-jobs
+    steps:
+    - - name: run-job-a
+        template: job-a-template
+    - - name: run-job-b
+        template: job-b-template
+    - - name: run-job-c
+        template: job-c-template
+  
+  # Job A template
+  - name: job-a-template
+    container:
+      image: "{{ $.Values.jobA.image.repository }}:{{ $.Values.jobA.image.tag }}"
+      imagePullPolicy: {{ $.Values.jobA.image.pullPolicy }}
+      env:
+      - name: POSTGRES_HOST
+        value: "postgres-service.{{ $namespace }}.svc.cluster.local"
+      - name: POSTGRES_PORT
+        value: "5432"
+      - name: POSTGRES_DB
+        valueFrom:
+          secretKeyRef:
+            name: postgres-secret
+            key: POSTGRES_DB
+      - name: POSTGRES_USER
+        valueFrom:
+          secretKeyRef:
+            name: postgres-secret
+            key: POSTGRES_USER
+      - name: POSTGRES_PASSWORD
+        valueFrom:
+          secretKeyRef:
+            name: postgres-secret
+            key: POSTGRES_PASSWORD
+      resources:
+        {{- toYaml $.Values.jobA.resources | nindent 8 }}
+  
+  # Job B template
+  - name: job-b-template
+    container:
+      image: "{{ $.Values.jobB.image.repository }}:{{ $.Values.jobB.image.tag }}"
+      imagePullPolicy: {{ $.Values.jobB.image.pullPolicy }}
+      env:
+      - name: POSTGRES_HOST
+        value: "postgres-service.{{ $namespace }}.svc.cluster.local"
+      - name: POSTGRES_PORT
+        value: "5432"
+      - name: POSTGRES_DB
+        valueFrom:
+          secretKeyRef:
+            name: postgres-secret
+            key: POSTGRES_DB
+      - name: POSTGRES_USER
+        valueFrom:
+          secretKeyRef:
+            name: postgres-secret
+            key: POSTGRES_USER
+      - name: POSTGRES_PASSWORD
+        valueFrom:
+          secretKeyRef:
+            name: postgres-secret
+            key: POSTGRES_PASSWORD
+      resources:
+        {{- toYaml $.Values.jobB.resources | nindent 8 }}
+  
+  # Job C template
+  - name: job-c-template
+    container:
+      image: "{{ $.Values.jobC.image.repository }}:{{ $.Values.jobC.image.tag }}"
+      imagePullPolicy: {{ $.Values.jobC.image.pullPolicy }}
+      env:
+      - name: POSTGRES_HOST
+        value: "postgres-service.{{ $namespace }}.svc.cluster.local"
+      - name: POSTGRES_PORT
+        value: "5432"
+      - name: POSTGRES_DB
+        valueFrom:
+          secretKeyRef:
+            name: postgres-secret
+            key: POSTGRES_DB
+      - name: POSTGRES_USER
+        valueFrom:
+          secretKeyRef:
+            name: postgres-secret
+            key: POSTGRES_USER
+      - name: POSTGRES_PASSWORD
+        valueFrom:
+          secretKeyRef:
+            name: postgres-secret
+            key: POSTGRES_PASSWORD
+      resources:
+        {{- toYaml $.Values.jobC.resources | nindent 8 }}
+{{- end }}
+{{- end }}
