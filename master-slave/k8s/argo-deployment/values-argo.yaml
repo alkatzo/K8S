@@ -1,0 +1,45 @@
+registry: "839918632884.dkr.ecr.ap-southeast-2.amazonaws.com"
+repository: "task-system"
+
+namespaces:
+  master: "task-system-master"
+  slave: "task-system-slave"
+
+postgresql:
+  image: "postgres:15-alpine"
+  auth:
+    database: "taskdb"
+    username: "postgres"
+    password: "postgres123"
+  storage:
+    class: "ebs-gp3"
+    size: "1Gi"
+  resources:
+    requests:
+      memory: "256Mi"
+      cpu: "250m"
+    limits:
+      memory: "512Mi"
+      cpu: "500m"
+
+images:
+  jobA: "job-a-latest"
+  jobB: "job-b-latest"
+  jobC: "job-c-latest"
+  taskExecutor: "task-executor-latest"
+
+resources:
+  jobs:
+    requests:
+      memory: "128Mi"
+      cpu: "100m"
+    limits:
+      memory: "256Mi"
+      cpu: "200m"
+  taskExecutor:
+    requests:
+      memory: "128Mi"
+      cpu: "100m"
+    limits:
+      memory: "256Mi"
+      cpu: "200m"

@@ -1,0 +1,30 @@
+{{- range $role, $namespace := .Values.namespaces }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: task-executor
+  namespace: {{ $namespace }}
+  labels:
+    app: task-executor
+    role: {{ $role }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: task-executor
+      role: {{ $role }}
+  template:
+    metadata:
+      labels:
+        app: task-executor
+        role: {{ $role }}
+    spec:
+      containers:
+      - name: task-executor
+        image: {{ $.Values.registry }}/{{ $.Values.repository }}:{{ $.Values.images.taskExecutor }}
+        env:
+        {{- include "postgres.env" $namespace | nindent 8 }}
+        resources:
+          {{- toYaml $.Values.resources.taskExecutor | nindent 10 }}
+{{- end }}

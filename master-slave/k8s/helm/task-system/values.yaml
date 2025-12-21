@@ -92,7 +92,7 @@ jobC:
 # Task Executor Service configuration
 taskExecutor:
   enabled: true
-  replicas: 2
+  replicas: 1
   image:
     repository: task-executor
     tag: latest

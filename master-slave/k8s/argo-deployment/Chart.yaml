@@ -1,0 +1,4 @@
+apiVersion: v2
+name: task-system-argo
+description: Task System with Argo Workflows orchestration
+version: 1.0.0
