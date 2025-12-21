@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Task Execution Monitor</title>
+    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        
+        .header {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        
+        .header h1 {
+            color: #333;
+            font-size: 28px;
+            margin-bottom: 5px;
+        }
+        
+        .namespace {
+            color: #667eea;
+            font-size: 16px;
+            font-weight: 600;
+        }
+        
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .stat-card {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        
+        .stat-card h3 {
+            color: #666;
+            font-size: 14px;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+        }
+        
+        .stat-card .value {
+            font-size: 32px;
+            font-weight: bold;
+            color: #333;
+        }
+        
+        .stat-card.total { border-left: 4px solid #667eea; }
+        .stat-card.pending { border-left: 4px solid #f59e0b; }
+        .stat-card.completed { border-left: 4px solid #10b981; }
+        
+        .tasks-section {
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        
+        .tasks-header {
+            background: #f8f9fa;
+            padding: 15px 20px;
+            border-bottom: 2px solid #e9ecef;
+        }
+        
+        .tasks-header h2 {
+            color: #333;
+            font-size: 20px;
+        }
+        
+        .tasks-list {
+            max-height: 600px;
+            overflow-y: auto;
+        }
+        
+        .task-item {
+            padding: 15px 20px;
+            border-bottom: 1px solid #e9ecef;
+            display: grid;
+            grid-template-columns: 60px 1fr 100px 120px 180px 180px;
+            gap: 15px;
+            align-items: center;
+            transition: background 0.2s;
+        }
+        
+        .task-item:hover {
+            background: #f8f9fa;
+        }
+        
+        .task-item.new {
+            animation: highlight 1s;
+        }
+        
+        @keyframes highlight {
+            0% { background: #dcfce7; }
+            100% { background: white; }
+        }
+        
+        .task-id {
+            font-weight: bold;
+            color: #667eea;
+        }
+        
+        .task-name {
+            font-weight: 500;
+        }
+        
+        .status {
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            text-align: center;
+            text-transform: uppercase;
+        }
+        
+        .status.pending {
+            background: #fef3c7;
+            color: #92400e;
+        }
+        
+        .status.completed {
+            background: #d1fae5;
+            color: #065f46;
+        }
+        
+        .created-by {
+            color: #666;
+            font-size: 13px;
+        }
+        
+        .timestamp {
+            color: #999;
+            font-size: 12px;
+        }
+        
+        .connection-status {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 10px 15px;
+            border-radius: 5px;
+            font-size: 12px;
+            font-weight: 600;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .connection-status.connected {
+            background: #d1fae5;
+            color: #065f46;
+        }
+        
+        .connection-status.disconnected {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+        
+        .no-tasks {
+            padding: 40px;
+            text-align: center;
+            color: #999;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #667eea;
+        }
+    </style>
+</head>
+<body>
+    <div class="connection-status" id="connectionStatus">Connecting...</div>
+    
+    <div class="container">
+        <div class="header">
+            <h1>🚀 Task Execution Monitor</h1>
+            <div class="namespace">Monitoring: Master & Slave Namespaces</div>
+        </div>
+        
+        <div class="stats">
+            <div class="stat-card total">
+                <h3>Total Tasks</h3>
+                <div class="value" id="totalTasks">0</div>
+            </div>
+            <div class="stat-card">
+                <h3>Master NS</h3>
+                <div class="value" id="masterTasks">0</div>
+            </div>
+            <div class="stat-card">
+                <h3>Slave NS</h3>
+                <div class="value" id="slaveTasks">0</div>
+            </div>
+            <div class="stat-card pending">
+                <h3>Pending</h3>
+                <div class="value" id="pendingTasks">0</div>
+            </div>
+            <div class="stat-card completed">
+                <h3>Completed</h3>
+                <div class="value" id="completedTasks">0</div>
+            </div>
+        </div>
+        
+        <div class="tasks-section">
+            <div class="tasks-header">
+                <h2>Recent Tasks</h2>
+            </div>
+            <div class="tasks-list" id="tasksList">
+                <div class="loading">Loading tasks...</div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        const socket = io();
+        let previousTaskIds = new Set();
+        
+        socket.on('connect', () => {
+            document.getElementById('connectionStatus').textContent = '🟢 Connected';
+            document.getElementById('connectionStatus').className = 'connection-status connected';
+        });
+        
+        socket.on('disconnect', () => {
+            document.getElementById('connectionStatus').textContent = '🔴 Disconnected';
+            document.getElementById('connectionStatus').className = 'connection-status disconnected';
+        });
+        
+        socket.on('tasks_update', (data) => {
+            updateStats(data.stats);
+            updateTasks(data.tasks);
+            document.getElementById('namespace').textContent = data.namespace;
+        });
+        
+        function updateStats(stats) {
+            document.getElementById('totalTasks').textContent = stats.total;
+            document.getElementById('masterTasks').textContent = stats.by_namespace.master || 0;
+            document.getElementById('slaveTasks').textContent = stats.by_namespace.slave || 0;
+            
+            // Sum status across both namespaces
+            const masterStatus = stats.master.by_status || {};
+            const slaveStatus = stats.slave.by_status || {};
+            const totalPending = (masterStatus.pending || 0) + (slaveStatus.pending || 0);
+            const totalCompleted = (masterStatus.completed || 0) + (slaveStatus.completed || 0);
+            
+            document.getElementById('pendingTasks').textContent = totalPending;
+            document.getElementById('completedTasks').textContent = totalCompleted;
+        }
+        
+        function updateTasks(tasks) {
+            const tasksList = document.getElementById('tasksList');
+            
+            if (tasks.length === 0) {
+                tasksList.innerHTML = '<div class="no-tasks">No tasks yet...</div>';
+                return;
+            }
+            
+            const newTaskIds = new Set(tasks.map(t => t.id));
+            
+            tasksList.innerHTML = tasks.map(task => {
+                const isNew = !previousTaskIds.has(task.id);
+                return `
+                    <div class="task-item ${isNew ? 'new' : ''}">
+                        <div class="task-id">#${task.id}</div>
+                        <div class="task-name">${task.name}</div>
+                        <div class="status ${task.status}">${task.status}</div>
+                        <div class="created-by">[${task.namespace}] ${task.created_by}</div>
+                        <div class="timestamp">${formatTime(task.created_at)}</div>
+                        <div class="timestamp">${task.completed_at ? formatTime(task.completed_at) : '-'}</div>
+                    </div>
+                `;
+            }).join('');
+            
+            previousTaskIds = newTaskIds;
+        }
+        
+        function formatTime(timestamp) {
+            if (!timestamp) return '-';
+            const date = new Date(timestamp);
+            return date.toLocaleTimeString();
+        }
+    </script>
+</body>
+</html>
