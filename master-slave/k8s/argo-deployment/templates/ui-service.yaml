@@ -1,0 +1,82 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ui-service
+  namespace: {{ .Values.namespaces.master }}
+  labels:
+    app: ui-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ui-service
+  template:
+    metadata:
+      labels:
+        app: ui-service
+    spec:
+      containers:
+      - name: ui-service
+        image: {{ .Values.registry }}/{{ .Values.repository }}:{{ .Values.images.uiService }}
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 8080
+          name: http
+        env:
+        - name: MASTER_NAMESPACE
+          value: {{ .Values.namespaces.master }}
+        - name: SLAVE_NAMESPACE
+          value: {{ .Values.namespaces.slave }}
+        - name: MASTER_POSTGRES_HOST
+          value: postgres-service.{{ .Values.namespaces.master }}.svc.cluster.local
+        - name: SLAVE_POSTGRES_HOST
+          value: postgres-service.{{ .Values.namespaces.slave }}.svc.cluster.local
+        - name: POSTGRES_PORT
+          value: "5432"
+        - name: POSTGRES_DB
+          valueFrom:
+            secretKeyRef:
+              name: postgres-secret
+              key: POSTGRES_DB
+        - name: POSTGRES_USER
+          valueFrom:
+            secretKeyRef:
+              name: postgres-secret
+              key: POSTGRES_USER
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: postgres-secret
+              key: POSTGRES_PASSWORD
+        resources:
+          {{- toYaml .Values.resources.uiService | nindent 10 }}
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 5
+          periodSeconds: 5
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ui-service
+  namespace: {{ .Values.namespaces.master }}
+  labels:
+    app: ui-service
+spec:
+  type: LoadBalancer
+  ports:
+    - port: 80
+      targetPort: 8080
+      protocol: TCP
+      name: http
+  selector:
+    app: ui-service

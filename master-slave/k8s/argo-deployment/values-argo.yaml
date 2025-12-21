@@ -27,6 +27,7 @@ images:
   jobB: "job-b-latest"
   jobC: "job-c-latest"
   taskExecutor: "task-executor-latest"
+  uiService: "ui-service-latest"
 
 resources:
   jobs:
@@ -37,6 +38,13 @@ resources:
       memory: "256Mi"
       cpu: "200m"
   taskExecutor:
+    requests:
+      memory: "128Mi"
+      cpu: "100m"
+    limits:
+      memory: "256Mi"
+      cpu: "200m"
+  uiService:
     requests:
       memory: "128Mi"
       cpu: "100m"
