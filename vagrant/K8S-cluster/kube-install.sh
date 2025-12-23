@@ -21,16 +21,19 @@ set -eE
 
 function err_report() {
   echo "Error on line $(caller)" >&2
-  exec >&3 2>&3 3>&-
-  cat $LOG_FILE
-  cleanup_tmp
+  exec >&3 2>&3 3>&- 2>/dev/null || true
+  echo "=== Log file contents ===" >&2
+  cat "$LOG_FILE" 2>/dev/null || echo "Log file not found: $LOG_FILE" >&2
+  echo "=== Log file preserved at: $LOG_FILE ===" >&2
+  # Don't cleanup on error so user can inspect the log
 }
 trap err_report ERR
 
 function cleanup_tmp(){
   rm -rf "$TMP_DIR"
 }
-trap cleanup_tmp EXIT
+# Only cleanup on successful exit, not on error
+trap 'if [ $? -eq 0 ]; then cleanup_tmp; fi' EXIT
 
 ### help
 function show_help(){
@@ -217,14 +220,23 @@ function start_services(){
   } 3>&2 >> $LOG_FILE 2>&1
 }
 
-### install calico as the CNI
+### install flannel as the CNI
 function install_cni(){
-  # need to deploy two manifests for calico to work
-  echo "Installing Calico CNI"
-  for manifest in tigera-operator custom-resources; do
-    echo "==> Installing Calico ${manifest}"
-    kubectl create -f ${CALICO_URL}/${manifest}.yaml 3>&2 >> $LOG_FILE 2>&1
-  done
+  echo "Installing Flannel CNI"
+  {
+    # Download Flannel manifest and modify it to use the correct pod subnet (192.168.0.0/16)
+    curl -sL https://github.com/flannel-io/flannel/releases/latest/download/kube-flannel.yml | \
+      sed 's|10.244.0.0/16|192.168.0.0/16|g' | \
+      kubectl apply -f -
+    
+    # Wait for Flannel daemonset to be created
+    echo "Waiting for Flannel to be deployed..."
+    sleep 15
+    
+    # Check Flannel status
+    echo "Current Flannel pod status:"
+    kubectl get pods -n kube-flannel || true
+  } 3>&2 >> $LOG_FILE 2>&1
 }
 
 function install_metrics_server(){
@@ -281,28 +293,32 @@ EOF
 
 ### wait for nodes to be ready
 function wait_for_nodes(){
-  echo "Waiting for nodes to be ready..."
+  echo "Waiting for nodes to be ready (may take up to 5 minutes)..."
   {
     kubectl wait \
       --for=condition=Ready \
       --all nodes \
-      --timeout=180s
+      --timeout=300s
   } 3>&2 >> $LOG_FILE 2>&1
   echo "==> Nodes are ready"
 }
 
 ### configure kubeconfig for root and ubuntu
 function configure_kubeconfig(){
-  echo "Configuring kubeconfig for root and ubuntu users"
+  echo "Configuring kubeconfig for root, ubuntu, and vagrant users"
   {
     # NOTE(curtis): sometimes ubuntu user won't exist, so we don't care if this fails
     rm /root/.kube/config || true
     rm /home/ubuntu/.kube/config || true
+    rm /home/vagrant/.kube/config || true
     mkdir -p /root/.kube
     mkdir -p /home/ubuntu/.kube || true
+    mkdir -p /home/vagrant/.kube || true
     cp -i /etc/kubernetes/admin.conf /root/.kube/config
     cp -i /etc/kubernetes/admin.conf /home/ubuntu/.kube/config || true
+    cp -i /etc/kubernetes/admin.conf /home/vagrant/.kube/config || true
     chown ubuntu:ubuntu /home/ubuntu/.kube/config || true
+    chown vagrant:vagrant /home/vagrant/.kube/config || true
   } 3>&2 >> $LOG_FILE 2>&1
 }
 
@@ -469,8 +485,6 @@ UBUNTU_VERSION=22.04
 # software versions
 KUBE_VERSION=1.31.0
 CONTAINERD_VERSION=1.7.20
-CALICO_VERSION=3.25.0
-CALICO_URL="https://raw.githubusercontent.com/projectcalico/calico/v${CALICO_VERSION}/manifests/"
 
 # create a temp dir to store logs
 TMP_DIR=$(mktemp -d -t install-kubernetes-XXXXXXXXXX)
