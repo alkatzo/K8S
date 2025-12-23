@@ -224,9 +224,8 @@ function start_services(){
 function install_cni(){
   echo "Installing Flannel CNI"
   {
-    # Download Flannel manifest and modify it to use the correct pod subnet (192.168.0.0/16)
+    # Download and apply Flannel manifest with standard 10.244.0.0/16 pod network
     curl -sL https://github.com/flannel-io/flannel/releases/latest/download/kube-flannel.yml | \
-      sed 's|10.244.0.0/16|192.168.0.0/16|g' | \
       kubectl apply -f -
     
     # Wait for Flannel daemonset to be created
@@ -275,15 +274,28 @@ function kubeadm_init(){
       exit 1
     fi
     
-    echo "Using IP address: $MAIN_IP"
+    echo "Using IP address: $MAIN_IP for API server"
     
     cat > kubeadm-config.yaml <<-EOF
 apiVersion: kubeadm.k8s.io/v1beta3
 kind: ClusterConfiguration
 kubernetesVersion: v${KUBE_VERSION}
 networking:
-  podSubnet: 192.168.0.0/16
+  podSubnet: 10.244.0.0/16
 controlPlaneEndpoint: "${MAIN_IP}:6443"
+apiServer:
+  certSANs:
+  - "${MAIN_IP}"
+  - "192.168.56.10"
+  - "master"
+  - "localhost"
+  - "127.0.0.1"
+---
+apiVersion: kubeadm.k8s.io/v1beta3
+kind: InitConfiguration
+localAPIEndpoint:
+  advertiseAddress: "${MAIN_IP}"
+  bindPort: 6443
 EOF
     # use config file for kubeadm
     kubeadm init --config kubeadm-config.yaml
