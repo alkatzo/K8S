@@ -1,16 +1,10 @@
+{{- range $role, $namespace := .Values.namespaces }}
 ---
 apiVersion: v1
 kind: Namespace
 metadata:
-  name: {{ .Values.namespaces.master }}
+  name: {{ $namespace }}
   labels:
     app: task-system
-    role: master
----
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: {{ .Values.namespaces.slave }}
-  labels:
-    app: task-system
-    role: slave
+    role: {{ $role }}
+{{- end }}
