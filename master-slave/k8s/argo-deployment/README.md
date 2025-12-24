@@ -7,10 +7,12 @@ A Helm-templated Kubernetes deployment for the task processing system using Argo
 This deployment uses Argo Workflows to orchestrate sequential job execution:
 
 - **Master-Slave Replication**: Separate namespaces (`task-system-master` and `task-system-slave`) for workload isolation
+- **Zone Affinity**: Master in zone-a, Slave in zone-b for high availability
 - **PostgreSQL Databases**: One database per namespace for task storage
 - **Argo Workflow Orchestration**: Native workflow controller manages job sequencing
 - **Task Executor Service**: RESTful API for task management
-- **UI Service**: Web interface for task monitoring
+- **UI Service**: Web interface per namespace with unified Ingress access
+- **Ingress**: Single entry point routing to both UI services
 
 ### Job Execution Flow
 
@@ -200,6 +202,75 @@ kubectl get workflows -n task-system-master -w
 kubectl get all -n task-system-master
 kubectl get all -n task-system-slave
 ```
+
+## Accessing the UI Services
+
+### Via Ingress (Recommended)
+
+The deployment includes a unified Ingress resource routing to both UI services:
+
+**Prerequisites:**
+1. Nginx Ingress controller installed:
+   ```bash
+   # For minikube
+   minikube addons enable ingress
+   
+   # For bare-metal
+   kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/main/deploy/static/provider/baremetal/deploy.yaml
+   ```
+
+2. Add to your hosts file (`/etc/hosts` on Linux/Mac, `C:\Windows\System32\drivers\etc\hosts` on Windows):
+   ```
+   <INGRESS_IP> task-system.local
+   ```
+   
+   Get the Ingress IP:
+   ```bash
+   # For minikube
+   kubectl get ingress ui-ingress -n task-system-master
+   # Use the ADDRESS column (e.g., 192.168.49.2)
+   
+   # For bare-metal with MetalLB
+   kubectl get ingress ui-ingress -n task-system-master -o jsonpath='{.status.loadBalancer.ingress[0].ip}'
+   ```
+
+3. Start tunnel (for minikube only):
+   ```bash
+   sudo minikube tunnel
+   # Keep this running in a separate terminal
+   ```
+
+**Access URLs:**
+- Master UI: http://task-system.local/master
+- Slave UI: http://task-system.local/slave
+
+### Via LoadBalancer (Direct Access)
+
+Each namespace has its own LoadBalancer service:
+
+```bash
+# Get LoadBalancer IPs
+kubectl get svc ui-service -n task-system-master
+kubectl get svc ui-service -n task-system-slave
+
+# Access directly (if network allows)
+# Master: http://<MASTER_EXTERNAL_IP>
+# Slave: http://<SLAVE_EXTERNAL_IP>
+```
+
+### Via Port Forward (Fallback)
+
+```bash
+# Master UI
+kubectl port-forward -n task-system-master svc/ui-service 8081:80
+
+# Slave UI (in a different terminal)
+kubectl port-forward -n task-system-slave svc/ui-service 8082:80
+```
+
+Then access:
+- Master: http://localhost:8081
+- Slave: http://localhost:8082
 
 ## Managing Workflows
 

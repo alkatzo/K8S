@@ -20,6 +20,7 @@ spec:
         app: task-executor
         role: {{ $role }}
     spec:
+      {{- include "zoneAffinity" (dict "role" $role "Values" $.Values) | nindent 6 }}
       containers:
       - name: task-executor
         image: {{ $.Values.registry }}/{{ $.Values.repository }}:{{ $.Values.images.taskExecutor }}

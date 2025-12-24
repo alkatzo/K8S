@@ -1,24 +1,29 @@
+{{- range $role, $namespace := .Values.namespaces }}
 ---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: ui-service
-  namespace: {{ .Values.namespaces.master }}
+  namespace: {{ $namespace }}
   labels:
     app: ui-service
+    role: {{ $role }}
 spec:
   replicas: 1
   selector:
     matchLabels:
       app: ui-service
+      role: {{ $role }}
   template:
     metadata:
       labels:
         app: ui-service
+        role: {{ $role }}
     spec:
+      {{- include "zoneAffinity" (dict "role" $role "Values" $.Values) | nindent 6 }}
       containers:
       - name: ui-service
-        image: {{ .Values.registry }}/{{ .Values.repository }}:{{ .Values.images.uiService }}
+        image: {{ $.Values.registry }}/{{ $.Values.repository }}:{{ $.Values.images.uiService }}
         command: ["python", "app.py"]
         imagePullPolicy: Always
         ports:
@@ -26,13 +31,13 @@ spec:
           name: http
         env:
         - name: MASTER_NAMESPACE
-          value: {{ .Values.namespaces.master }}
+          value: {{ $.Values.namespaces.master }}
         - name: SLAVE_NAMESPACE
-          value: {{ .Values.namespaces.slave }}
+          value: {{ $.Values.namespaces.slave }}
         - name: MASTER_POSTGRES_HOST
-          value: postgres-service.{{ .Values.namespaces.master }}.svc.cluster.local
+          value: postgres-service.{{ $.Values.namespaces.master }}.svc.cluster.local
         - name: SLAVE_POSTGRES_HOST
-          value: postgres-service.{{ .Values.namespaces.slave }}.svc.cluster.local
+          value: postgres-service.{{ $.Values.namespaces.slave }}.svc.cluster.local
         - name: POSTGRES_PORT
           value: "5432"
         - name: POSTGRES_DB
@@ -51,7 +56,7 @@ spec:
               name: postgres-secret
               key: POSTGRES_PASSWORD
         resources:
-          {{- toYaml .Values.resources.uiService | nindent 10 }}
+          {{- toYaml $.Values.resources.uiService | nindent 10 }}
         livenessProbe:
           httpGet:
             path: /health
@@ -69,9 +74,10 @@ apiVersion: v1
 kind: Service
 metadata:
   name: ui-service
-  namespace: {{ .Values.namespaces.master }}
+  namespace: {{ $namespace }}
   labels:
     app: ui-service
+    role: {{ $role }}
 spec:
   type: LoadBalancer
   ports:
@@ -81,3 +87,5 @@ spec:
       name: http
   selector:
     app: ui-service
+    role: {{ $role }}
+{{- end }}

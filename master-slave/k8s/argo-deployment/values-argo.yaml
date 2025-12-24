@@ -6,6 +6,14 @@ namespaces:
   master: "task-system-master"
   slave: "task-system-slave"
 
+# Zone assignment for each namespace
+zones:
+  master: "zone-a"  # Change to your actual zone names
+  slave: "zone-b"   # Run kubectl get nodes -L topology.kubernetes.io/zone to see available zones
+  
+# Enable/disable zone affinity
+enableZoneAffinity: true
+
 postgresql:
   image: "postgres:15-alpine"
   auth:

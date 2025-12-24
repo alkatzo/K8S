@@ -67,6 +67,7 @@ spec:
         app: postgres
         role: {{ $role }}
     spec:
+      {{- include "zoneAffinity" (dict "role" $role "Values" $.Values) | nindent 6 }}
       containers:
       - name: postgres
         image: {{ $.Values.postgresql.image }}

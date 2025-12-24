@@ -25,6 +25,18 @@ spec:
   # Job templates without initContainers
   {{- range $job := list "A" "B" "C" }}
   - name: job-{{ lower $job }}
+    {{- if $.Values.enableZoneAffinity }}
+    {{- $zone := index $.Values.zones $role }}
+    affinity:
+      nodeAffinity:
+        requiredDuringSchedulingIgnoredDuringExecution:
+          nodeSelectorTerms:
+          - matchExpressions:
+            - key: topology.kubernetes.io/zone
+              operator: In
+              values:
+              - {{ $zone }}
+    {{- end }}
     container:
       image: {{ $.Values.registry }}/{{ $.Values.repository }}:job-{{ lower $job }}-latest
       command: ["python", "app.py"]
