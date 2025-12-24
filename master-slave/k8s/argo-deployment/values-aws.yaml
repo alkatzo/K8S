@@ -1,0 +1,6 @@
+# AWS EKS overrides - use with: -f values-argo.yaml -f values-aws.yaml
+registry: "839918632884.dkr.ecr.ap-southeast-2.amazonaws.com"
+
+postgresql:
+  storage:
+    class: "ebs-gp3"  # AWS EBS storage class

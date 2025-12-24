@@ -12,3 +12,4 @@ app/.cache/
 *.tfstate.backup
 *.zip
 errors.err
+.aws/

@@ -11,19 +11,10 @@ spec:
   entrypoint: sequential-jobs
   serviceAccountName: argo-workflow
   
-  volumeClaimTemplates:
-  - metadata:
-      name: workdir
-    spec:
-      accessModes: [ReadWriteOnce]
-      storageClassName: ebs-gp3
-      resources:
-        requests:
-          storage: 1Gi
-  
   templates:
   - name: sequential-jobs
     steps:
+    # Run jobs sequentially (postgres should already be running via StatefulSet)
     - - name: run-job-a
         template: job-a
     - - name: run-job-b
@@ -31,22 +22,12 @@ spec:
     - - name: run-job-c
         template: job-c
   
+  # Job templates without initContainers
   {{- range $job := list "A" "B" "C" }}
   - name: job-{{ lower $job }}
-    initContainers:
-    - name: wait-for-postgres
-      image: postgres:15-alpine
-      command:
-      - sh
-      - -c
-      - |
-        until pg_isready -h postgres-service.{{ $namespace }}.svc.cluster.local -U postgres; do
-          echo "Waiting for PostgreSQL..."
-          sleep 2
-        done
-        echo "PostgreSQL is ready!"
     container:
       image: {{ $.Values.registry }}/{{ $.Values.repository }}:job-{{ lower $job }}-latest
+      command: ["python", "app.py"]
       env:
       {{- include "postgres.env" $namespace | nindent 6 }}
       resources:

@@ -224,9 +224,38 @@ function start_services(){
 function install_cni(){
   echo "Installing Flannel CNI"
   {
+    # Wait for API server to be fully ready
+    echo "Waiting for API server to be fully ready..."
+    local retries=0
+    local max_retries=10
+    while [ $retries -lt $max_retries ]; do
+      if kubectl cluster-info > /dev/null 2>&1; then
+        echo "API server is ready"
+        break
+      fi
+      echo "API server not ready yet, waiting... (attempt $((retries+1))/$max_retries)"
+      sleep 5
+      retries=$((retries+1))
+    done
+    
     # Download and apply Flannel manifest with standard 10.244.0.0/16 pod network
-    curl -sL https://github.com/flannel-io/flannel/releases/latest/download/kube-flannel.yml | \
-      kubectl apply -f -
+    echo "Applying Flannel manifest..."
+    local apply_retries=0
+    local apply_max_retries=5
+    while [ $apply_retries -lt $apply_max_retries ]; do
+      if curl -sL https://github.com/flannel-io/flannel/releases/latest/download/kube-flannel.yml | kubectl apply -f -; then
+        echo "Flannel manifest applied successfully"
+        break
+      fi
+      echo "Failed to apply Flannel manifest, retrying... (attempt $((apply_retries+1))/$apply_max_retries)"
+      sleep 10
+      apply_retries=$((apply_retries+1))
+    done
+    
+    if [ $apply_retries -eq $apply_max_retries ]; then
+      echo "Failed to apply Flannel manifest after $apply_max_retries attempts"
+      return 1
+    fi
     
     # Wait for Flannel daemonset to be created
     echo "Waiting for Flannel to be deployed..."
@@ -298,7 +327,9 @@ localAPIEndpoint:
   bindPort: 6443
 EOF
     # use config file for kubeadm
+    echo "Running kubeadm init ..."
     kubeadm init --config kubeadm-config.yaml
+    echo "Running kubeadm init complete"
   } 3>&2 >> $LOG_FILE 2>&1
 }
 
@@ -462,7 +493,7 @@ function run_main(){
     wait_for_nodes
     # now  test what was installed
     test_kubernetes_version
-    install_metrics_server
+    #install_metrics_server
     if [[ "${SINGLE_NODE}" == "true" ]]; then
       echo "Configuring as a single node cluster"
       configure_as_single_node

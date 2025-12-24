@@ -117,7 +117,9 @@ spec:
       name: postgres-storage
     spec:
       accessModes: [ReadWriteOnce]
+      {{- if $.Values.postgresql.storage.class }}
       storageClassName: {{ $.Values.postgresql.storage.class | quote }}
+      {{- end }}
       resources:
         requests:
           storage: {{ $.Values.postgresql.storage.size }}

@@ -1,0 +1,3 @@
+# Local/Bare-Metal overrides - use with: -f values-argo.yaml -f values-local.yaml
+# Override registry to use AWS ECR (images not available on Docker Hub)
+registry: "alkatzo"

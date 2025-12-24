@@ -19,6 +19,7 @@ spec:
       containers:
       - name: ui-service
         image: {{ .Values.registry }}/{{ .Values.repository }}:{{ .Values.images.uiService }}
+        command: ["python", "app.py"]
         imagePullPolicy: Always
         ports:
         - containerPort: 8080

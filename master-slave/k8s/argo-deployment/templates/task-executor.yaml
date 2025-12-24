@@ -23,6 +23,7 @@ spec:
       containers:
       - name: task-executor
         image: {{ $.Values.registry }}/{{ $.Values.repository }}:{{ $.Values.images.taskExecutor }}
+        command: ["python", "app.py"]
         env:
         {{- include "postgres.env" $namespace | nindent 8 }}
         resources:

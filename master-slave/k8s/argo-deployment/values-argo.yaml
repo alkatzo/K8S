@@ -1,4 +1,5 @@
-registry: "839918632884.dkr.ecr.ap-southeast-2.amazonaws.com"
+# Base values file - shared across all environments
+registry: "alkatzo"
 repository: "task-system"
 
 namespaces:
@@ -12,7 +13,7 @@ postgresql:
     username: "postgres"
     password: "postgres123"
   storage:
-    class: "ebs-gp3"
+    class: ""  # Override in environment-specific files
     size: "1Gi"
   resources:
     requests:

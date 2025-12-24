@@ -18,8 +18,6 @@ Vagrant.configure("2") do |config|
       v.cpus = 2
     end
     master.vm.provision "shell", inline: $minimal_setup
-    # Run kube-install.sh as control plane (run: "once" means only on first vagrant up)
-    master.vm.provision "shell", inline: "sudo /vagrant/kube-install.sh -c", run: "once"
   end
 
   config.vm.define "worker1" do |worker|
@@ -30,8 +28,6 @@ Vagrant.configure("2") do |config|
       v.cpus = 2
     end
     worker.vm.provision "shell", inline: $minimal_setup
-    # Run kube-install.sh as worker (no flags = worker mode)
-    worker.vm.provision "shell", inline: "sudo /vagrant/kube-install.sh", run: "once"
   end
 
   config.vm.define "worker2" do |worker|
@@ -42,6 +38,5 @@ Vagrant.configure("2") do |config|
      v.cpus = 2
    end
    worker.vm.provision "shell", inline: $minimal_setup
-   worker.vm.provision "shell", inline: "sudo /vagrant/kube-install.sh"
   end
 end
