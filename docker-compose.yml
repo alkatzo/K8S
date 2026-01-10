@@ -1,0 +1,175 @@
+x-app-base: &app-base
+  entrypoint:
+    [
+      "sh",
+      "-c",
+      "POSTGRES_PASSWORD=$$(cat /run/secrets/pg_password); export POSTGRES_PASSWORD; exec python app.py",
+    ]
+  secrets:
+    - pg_password
+  environment: &app-env
+    POSTGRES_PORT: "5432"
+    POSTGRES_DB: taskdb
+    POSTGRES_USER: postgres
+
+services:
+  postgres-master:
+    image: postgres:15-alpine
+    tty: true
+    environment:
+      POSTGRES_DB: taskdb
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD_FILE: /run/secrets/pg_password
+    secrets:
+      - pg_password
+    volumes:
+      - pgdata-master:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  postgres-slave:
+    image: postgres:15-alpine
+    tty: true
+    environment:
+      POSTGRES_DB: taskdb
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD_FILE: /run/secrets/pg_password
+    secrets:
+      - pg_password
+    volumes:
+      - pgdata-slave:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  task-executor-master:
+    <<: *app-base
+    build: ./apps/task-executor-service
+    tty: true
+    environment:
+      <<: *app-env
+      POSTGRES_HOST: postgres-master
+    depends_on:
+      postgres-master:
+        condition: service_healthy
+
+  task-executor-slave:
+    <<: *app-base
+    build: ./apps/task-executor-service
+    tty: true
+    environment:
+      <<: *app-env
+      POSTGRES_HOST: postgres-slave
+    depends_on:
+      postgres-slave:
+        condition: service_healthy
+
+  ui-service:
+    <<: *app-base
+    build: ./apps/ui-service
+    ports:
+      - "8080:8080"
+    tty: true
+    environment:
+      <<: *app-env
+      MASTER_NAMESPACE: task-system-master
+      SLAVE_NAMESPACE: task-system-slave
+      MASTER_POSTGRES_HOST: postgres-master
+      SLAVE_POSTGRES_HOST: postgres-slave
+    depends_on:
+      postgres-master:
+        condition: service_healthy
+      postgres-slave:
+        condition: service_healthy
+
+  # One-off job runners (mirroring Argo steps). Run with `docker compose run --rm job-a-master` etc.
+  job-a-master:
+    <<: *app-base
+    build: ./apps/job-a
+    tty: true
+    environment:
+      <<: *app-env
+      POSTGRES_HOST: postgres-master
+    depends_on:
+      postgres-master:
+        condition: service_healthy
+    restart: "no"
+    profiles: ["jobs"]
+
+  job-b-master:
+    <<: *app-base
+    build: ./apps/job-b
+    tty: true
+    environment:
+      <<: *app-env
+      POSTGRES_HOST: postgres-master
+    depends_on:
+      postgres-master:
+        condition: service_healthy
+    restart: "no"
+    profiles: ["jobs"]
+
+  job-c-master:
+    <<: *app-base
+    build: ./apps/job-c
+    tty: true
+    environment:
+      <<: *app-env
+      POSTGRES_HOST: postgres-master
+    depends_on:
+      postgres-master:
+        condition: service_healthy
+    restart: "no"
+    profiles: ["jobs"]
+
+  job-a-slave:
+    <<: *app-base
+    build: ./apps/job-a
+    tty: true
+    environment:
+      <<: *app-env
+      POSTGRES_HOST: postgres-slave
+    depends_on:
+      postgres-slave:
+        condition: service_healthy
+    restart: "no"
+    profiles: ["jobs"]
+
+  job-b-slave:
+    <<: *app-base
+    build: ./apps/job-b
+    tty: true
+    environment:
+      <<: *app-env
+      POSTGRES_HOST: postgres-slave
+    depends_on:
+      postgres-slave:
+        condition: service_healthy
+    restart: "no"
+    profiles: ["jobs"]
+
+  job-c-slave:
+    <<: *app-base
+    build: ./apps/job-c
+    tty: true
+    environment:
+      <<: *app-env
+      POSTGRES_HOST: postgres-slave
+    depends_on:
+      postgres-slave:
+        condition: service_healthy
+    restart: "no"
+    profiles: ["jobs"]
+
+volumes:
+  pgdata-master:
+  pgdata-slave:
+
+secrets:
+  pg_password:
+    file: ./docker-compose/secrets/pg_password.txt
