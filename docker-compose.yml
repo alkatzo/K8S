@@ -11,6 +11,8 @@ x-app-base: &app-base
     POSTGRES_PORT: "5432"
     POSTGRES_DB: taskdb
     POSTGRES_USER: postgres
+    IMAGE_TAG: ${IMAGE_TAG:-local}
+    REGISTRY: ${REGISTRY:-alkatzo/deployment}
 
 services:
   postgres-master:
@@ -50,6 +52,7 @@ services:
   task-executor-master:
     <<: *app-base
     build: ./apps/task-executor-service
+    image: ${REGISTRY:-alkatzo/deployment}:task-executor.${IMAGE_TAG:-local}
     tty: true
     environment:
       <<: *app-env
@@ -61,6 +64,7 @@ services:
   task-executor-slave:
     <<: *app-base
     build: ./apps/task-executor-service
+    image: ${REGISTRY:-alkatzo/deployment}:task-executor.${IMAGE_TAG:-local}
     tty: true
     environment:
       <<: *app-env
@@ -72,6 +76,7 @@ services:
   ui-service:
     <<: *app-base
     build: ./apps/ui-service
+    image: ${REGISTRY:-alkatzo/deployment}:ui-service.${IMAGE_TAG:-local}
     ports:
       - "8080:8080"
     tty: true
@@ -91,6 +96,7 @@ services:
   job-a-master:
     <<: *app-base
     build: ./apps/job-a
+    image: ${REGISTRY:-alkatzo/deployment}:job-a.${IMAGE_TAG:-local}
     tty: true
     environment:
       <<: *app-env
@@ -104,6 +110,7 @@ services:
   job-b-master:
     <<: *app-base
     build: ./apps/job-b
+    image: ${REGISTRY:-alkatzo/deployment}:job-b.${IMAGE_TAG:-local}
     tty: true
     environment:
       <<: *app-env
@@ -117,6 +124,7 @@ services:
   job-c-master:
     <<: *app-base
     build: ./apps/job-c
+    image: ${REGISTRY:-alkatzo/deployment}:job-c.${IMAGE_TAG:-local}
     tty: true
     environment:
       <<: *app-env
@@ -130,6 +138,7 @@ services:
   job-a-slave:
     <<: *app-base
     build: ./apps/job-a
+    image: ${REGISTRY:-alkatzo/deployment}:job-a.${IMAGE_TAG:-local}
     tty: true
     environment:
       <<: *app-env
@@ -143,6 +152,7 @@ services:
   job-b-slave:
     <<: *app-base
     build: ./apps/job-b
+    image: ${REGISTRY:-alkatzo/deployment}:job-b.${IMAGE_TAG:-local}
     tty: true
     environment:
       <<: *app-env
@@ -156,6 +166,7 @@ services:
   job-c-slave:
     <<: *app-base
     build: ./apps/job-c
+    image: ${REGISTRY:-alkatzo/deployment}:job-c.${IMAGE_TAG:-local}
     tty: true
     environment:
       <<: *app-env
