@@ -53,7 +53,7 @@ pipeline {
           set -e
           export IMAGE_TAG=${IMAGE_TAG}
           docker compose pull || true
-          docker compose up -d
+          docker compose up -d --remove-orphans
         '''
       }
     }

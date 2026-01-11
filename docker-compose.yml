@@ -8,9 +8,9 @@ x-app-base: &app-base
   secrets:
     - pg_password
   environment: &app-env
-    POSTGRES_PORT: "5432"
-    POSTGRES_DB: taskdb
-    POSTGRES_USER: postgres
+    POSTGRES_PORT: ${POSTGRES_PORT:-5432}
+    POSTGRES_DB: ${POSTGRES_DB:-taskdb}
+    POSTGRES_USER: ${POSTGRES_USER:-postgres}
     IMAGE_TAG: ${IMAGE_TAG:-local}
     REGISTRY: ${REGISTRY:-alkatzo/deployment}
 
@@ -19,8 +19,8 @@ services:
     image: postgres:15-alpine
     tty: true
     environment:
-      POSTGRES_DB: taskdb
-      POSTGRES_USER: postgres
+      POSTGRES_DB: ${POSTGRES_DB:-taskdb}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
       POSTGRES_PASSWORD_FILE: /run/secrets/pg_password
     secrets:
       - pg_password
@@ -36,8 +36,8 @@ services:
     image: postgres:15-alpine
     tty: true
     environment:
-      POSTGRES_DB: taskdb
-      POSTGRES_USER: postgres
+      POSTGRES_DB: ${POSTGRES_DB:-taskdb}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
       POSTGRES_PASSWORD_FILE: /run/secrets/pg_password
     secrets:
       - pg_password
