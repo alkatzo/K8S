@@ -21,9 +21,12 @@ pipeline {
       steps {
         script {
           def envProps = readProperties file: '.env'
-          env.REGISTRY = envProps.get('REGISTRY', 'alkatzo/deployment')
-          env.IMAGE_TAG = envProps.get('IMAGE_TAG', env.IMAGE_TAG)
-          env.COMPOSE_PROJECT_NAME = envProps.get('COMPOSE_PROJECT_NAME', 'tasks')
+          def reg = envProps.get('REGISTRY', '').trim()
+          env.REGISTRY = reg ?: 'alkatzo/deployment'
+          def tag = envProps.get('IMAGE_TAG', '').trim()
+          env.IMAGE_TAG = tag ?: env.IMAGE_TAG
+          def proj = envProps.get('COMPOSE_PROJECT_NAME', '').trim()
+          env.COMPOSE_PROJECT_NAME = proj ?: 'tasks'
           // Add more variables as needed from .env
         }
       }
