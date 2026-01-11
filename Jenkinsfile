@@ -40,52 +40,74 @@ pipeline {
     stage('Build & Push images') {
       steps {
         script {
+          // Define a function to build and push a service
+          def buildService = { service ->
+            echo "Building and pushing ${service} to ${REGISTRY}:${service}.${IMAGE_TAG}"
+            sh """
+              set -e
+              set -x
+              echo "Checking context for ${service}"
+              ls -la "\${WORKSPACE}/apps/${service == 'task-executor' ? 'task-executor-service' : service}" || echo "Context not found"
+              echo "Contents of context:"
+              ls -la "\${WORKSPACE}/apps/${service == 'task-executor' ? 'task-executor-service' : service}/" || echo "Failed to list"
+              echo "Dockerfile exists:"
+              cat "\${WORKSPACE}/apps/${service == 'task-executor' ? 'task-executor-service' : service}/Dockerfile" || echo "Dockerfile not found"
+              echo "Running Kaniko for ${service}"
+              /kaniko/executor \
+                --context="\${WORKSPACE}/apps/${service == 'task-executor' ? 'task-executor-service' : service}" \
+                --dockerfile="\${WORKSPACE}/apps/${service == 'task-executor' ? 'task-executor-service' : service}/Dockerfile" \
+                --destination="${REGISTRY}:${service}.${IMAGE_TAG}" \
+                --snapshotMode=redo \
+                --verbosity=debug
+              echo "Finished pushing ${service}"
+            """
+          }
+
           container('kaniko') {
-             withCredentials([usernamePassword(
-               credentialsId: REGISTRY_CREDENTIALS,
-               usernameVariable: 'DOCKER_USER',
-               passwordVariable: 'DOCKER_PASS'
-             )]) {
-               sh '''
-                 set -e
-                 set -x
-                 echo "WORKSPACE=$WORKSPACE"
-                 echo "Setting up Docker config for Kaniko"
-                 mkdir -p /kaniko/.docker
-                 AUTH=$(echo -n "${DOCKER_USER}:${DOCKER_PASS}" | base64)
-                 echo "Auth length: ${#AUTH}"
-                 cat > /kaniko/.docker/config.json <<EOF
-                 {
-                   "auths": {
-                     "https://index.docker.io/v1/": {
-                       "auth": "$AUTH"
-                     }
-                   }
-                 }
-                 EOF
-                 echo "Docker config created"
-               '''
- 
-               echo "Building and pushing ui-service to ${REGISTRY}:ui-service.${IMAGE_TAG}"
-               sh '''
-                 set -e
-                 set -x
-                 echo "Checking context for ui-service"
-                 ls -la "${WORKSPACE}/apps/ui-service" || echo "Context not found"
-                 echo "Contents of context:"
-                 ls -la "${WORKSPACE}/apps/ui-service/" || echo "Failed to list"
-                 echo "Dockerfile exists:"
-                 cat "${WORKSPACE}/apps/ui-service/Dockerfile" || echo "Dockerfile not found"
-                 echo "Running Kaniko for ui-service"
-                 /kaniko/executor \
-                   --context="${WORKSPACE}/apps/ui-service" \
-                   --dockerfile="${WORKSPACE}/apps/ui-service/Dockerfile" \
-                   --destination="${REGISTRY}:ui-service.${IMAGE_TAG}" \
-                   --snapshotMode=redo \
-                   --verbosity=debug
-                 echo "Finished pushing ui-service"
-               '''
-             }
+            withCredentials([usernamePassword(
+              credentialsId: REGISTRY_CREDENTIALS,
+              usernameVariable: 'DOCKER_USER',
+              passwordVariable: 'DOCKER_PASS'
+            )]) {
+              sh '''
+                set -e
+                set -x
+                echo "WORKSPACE=$WORKSPACE"
+                echo "Setting up Docker config for Kaniko"
+                mkdir -p /kaniko/.docker
+                AUTH=$(echo -n "${DOCKER_USER}:${DOCKER_PASS}" | base64)
+                echo "Auth length: ${#AUTH}"
+                cat > /kaniko/.docker/config.json <<EOF
+                {
+                  "auths": {
+                    "https://index.docker.io/v1/": {
+                      "auth": "$AUTH"
+                    }
+                  }
+                }
+                EOF
+                echo "Docker config created"
+              '''
+
+              // Build and push all images in parallel
+              parallel(
+                'Build job-a': {
+                  buildService('job-a')
+                },
+                'Build job-b': {
+                  buildService('job-b')
+                },
+                'Build job-c': {
+                  buildService('job-c')
+                },
+                'Build task-executor': {
+                  buildService('task-executor')
+                },
+                'Build ui-service': {
+                  buildService('ui-service')
+                }
+              )
+            }
           }
         }
       }
