@@ -47,9 +47,13 @@ pipeline {
             # Start dockerd if not already running (Docker-in-Docker)
             if ! pgrep -x dockerd >/dev/null; then
               nohup dockerd-entrypoint.sh --host=unix:///var/run/docker.sock --storage-driver=overlay2 >/tmp/dind.log 2>&1 &
-              sleep 6
+              sleep 8
             fi
-            docker info
+            if ! docker info; then
+              echo "---- dockerd log ----"
+              cat /tmp/dind.log || true
+              exit 1
+            fi
           '''
           docker.withRegistry('https://index.docker.io/v1/', REGISTRY_CREDENTIALS) {
             parallel(
