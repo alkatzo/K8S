@@ -34,6 +34,8 @@ node('k8s-agent-alex-default') {
         '''
         sh """
           set -e
+          # Ensure optional templates dir exists to avoid COPY failures in Dockerfiles that expect it
+          mkdir -p "\${WORKSPACE}/apps/${svc}/templates"
           /kaniko/executor \
             --context="\${WORKSPACE}/apps/${svc}" \
             --dockerfile="\${WORKSPACE}/apps/${svc}/Dockerfile" \
