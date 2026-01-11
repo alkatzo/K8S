@@ -98,6 +98,7 @@ pipeline {
 
     stage('Deploy with docker-compose') {
       steps {
+        agent any
         sh '''
           set -e
           export IMAGE_TAG=${IMAGE_TAG}
