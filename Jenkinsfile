@@ -94,31 +94,271 @@ pipeline {
 
     stage('Build job-a') {
       steps {
-        script buildScript('job-a')
+        container('kaniko') {
+          withCredentials([usernamePassword(
+            credentialsId: 'dockerhub-credentials',
+            usernameVariable: 'DOCKER_USER',
+            passwordVariable: 'DOCKER_PASS'
+          )]) {
+            sh '''
+              set -e
+              set -x
+              echo "WORKSPACE=$WORKSPACE"
+              echo "Setting up Docker config for Kaniko"
+              mkdir -p /kaniko/.docker
+              AUTH=$(echo -n "${DOCKER_USER}:${DOCKER_PASS}" | base64)
+              echo "Auth length: ${#AUTH}"
+              cat > /kaniko/.docker/config.json <<EOF
+              {
+                "auths": {
+                  "https://index.docker.io/v1/": {
+                    "auth": "$AUTH"
+                  }
+                }
+              }
+              EOF
+              echo "Docker config created"
+            '''
+
+            echo "Building and pushing job-a to ${env.REGISTRY}:job-a.${env.IMAGE_TAG}"
+            sh """
+              set -e
+              set -x
+              echo "Checking context for job-a"
+              ls -la "\${WORKSPACE}/apps/job-a" || echo "Context not found"
+              echo "Contents of context:"
+              ls -la "\${WORKSPACE}/apps/job-a/" || echo "Failed to list"
+              echo "Dockerfile exists:"
+              cat "\${WORKSPACE}/apps/job-a/Dockerfile" || echo "Dockerfile not found"
+              echo "Contents of Dockerfile:"
+              cat "\${WORKSPACE}/apps/job-a/Dockerfile" || echo "Failed to cat"
+              echo "Running Kaniko for job-a"
+              /kaniko/executor \
+                --context="\${WORKSPACE}/apps/job-a" \
+                --dockerfile="\${WORKSPACE}/apps/job-a/Dockerfile" \
+                --destination="${env.REGISTRY}:job-a.${env.IMAGE_TAG}" \
+                --snapshotMode=redo \
+                --verbosity=debug
+              echo "Finished pushing job-a"
+            """
+          }
+        }
       }
     }
 
     stage('Build job-b') {
       steps {
-        script buildScript('job-b')
+        container('kaniko') {
+          withCredentials([usernamePassword(
+            credentialsId: 'dockerhub-credentials',
+            usernameVariable: 'DOCKER_USER',
+            passwordVariable: 'DOCKER_PASS'
+          )]) {
+            sh '''
+              set -e
+              set -x
+              echo "WORKSPACE=$WORKSPACE"
+              echo "Setting up Docker config for Kaniko"
+              mkdir -p /kaniko/.docker
+              AUTH=$(echo -n "${DOCKER_USER}:${DOCKER_PASS}" | base64)
+              echo "Auth length: ${#AUTH}"
+              cat > /kaniko/.docker/config.json <<EOF
+              {
+                "auths": {
+                  "https://index.docker.io/v1/": {
+                    "auth": "$AUTH"
+                  }
+                }
+              }
+              EOF
+              echo "Docker config created"
+            '''
+
+            echo "Building and pushing job-b to ${env.REGISTRY}:job-b.${env.IMAGE_TAG}"
+            sh """
+              set -e
+              set -x
+              echo "Checking context for job-b"
+              ls -la "\${WORKSPACE}/apps/job-b" || echo "Context not found"
+              echo "Contents of context:"
+              ls -la "\${WORKSPACE}/apps/job-b/" || echo "Failed to list"
+              echo "Dockerfile exists:"
+              cat "\${WORKSPACE}/apps/job-b/Dockerfile" || echo "Dockerfile not found"
+              echo "Contents of Dockerfile:"
+              cat "\${WORKSPACE}/apps/job-b/Dockerfile" || echo "Failed to cat"
+              echo "Running Kaniko for job-b"
+              /kaniko/executor \
+                --context="\${WORKSPACE}/apps/job-b" \
+                --dockerfile="\${WORKSPACE}/apps/job-b/Dockerfile" \
+                --destination="${env.REGISTRY}:job-b.${env.IMAGE_TAG}" \
+                --snapshotMode=redo \
+                --verbosity=debug
+              echo "Finished pushing job-b"
+            """
+          }
+        }
       }
     }
 
     stage('Build job-c') {
       steps {
-        script buildScript('job-c')
+        container('kaniko') {
+          withCredentials([usernamePassword(
+            credentialsId: 'dockerhub-credentials',
+            usernameVariable: 'DOCKER_USER',
+            passwordVariable: 'DOCKER_PASS'
+          )]) {
+            sh '''
+              set -e
+              set -x
+              echo "WORKSPACE=$WORKSPACE"
+              echo "Setting up Docker config for Kaniko"
+              mkdir -p /kaniko/.docker
+              AUTH=$(echo -n "${DOCKER_USER}:${DOCKER_PASS}" | base64)
+              echo "Auth length: ${#AUTH}"
+              cat > /kaniko/.docker/config.json <<EOF
+              {
+                "auths": {
+                  "https://index.docker.io/v1/": {
+                    "auth": "$AUTH"
+                  }
+                }
+              }
+              EOF
+              echo "Docker config created"
+            '''
+
+            echo "Building and pushing job-c to ${env.REGISTRY}:job-c.${env.IMAGE_TAG}"
+            sh """
+              set -e
+              set -x
+              echo "Checking context for job-c"
+              ls -la "\${WORKSPACE}/apps/job-c" || echo "Context not found"
+              echo "Contents of context:"
+              ls -la "\${WORKSPACE}/apps/job-c/" || echo "Failed to list"
+              echo "Dockerfile exists:"
+              cat "\${WORKSPACE}/apps/job-c/Dockerfile" || echo "Dockerfile not found"
+              echo "Contents of Dockerfile:"
+              cat "\${WORKSPACE}/apps/job-c/Dockerfile" || echo "Failed to cat"
+              echo "Running Kaniko for job-c"
+              /kaniko/executor \
+                --context="\${WORKSPACE}/apps/job-c" \
+                --dockerfile="\${WORKSPACE}/apps/job-c/Dockerfile" \
+                --destination="${env.REGISTRY}:job-c.${env.IMAGE_TAG}" \
+                --snapshotMode=redo \
+                --verbosity=debug
+              echo "Finished pushing job-c"
+            """
+          }
+        }
       }
     }
 
     stage('Build task-executor') {
       steps {
-        script buildScript('task-executor')
+        container('kaniko') {
+          withCredentials([usernamePassword(
+            credentialsId: 'dockerhub-credentials',
+            usernameVariable: 'DOCKER_USER',
+            passwordVariable: 'DOCKER_PASS'
+          )]) {
+            sh '''
+              set -e
+              set -x
+              echo "WORKSPACE=$WORKSPACE"
+              echo "Setting up Docker config for Kaniko"
+              mkdir -p /kaniko/.docker
+              AUTH=$(echo -n "${DOCKER_USER}:${DOCKER_PASS}" | base64)
+              echo "Auth length: ${#AUTH}"
+              cat > /kaniko/.docker/config.json <<EOF
+              {
+                "auths": {
+                  "https://index.docker.io/v1/": {
+                    "auth": "$AUTH"
+                  }
+                }
+              }
+              EOF
+              echo "Docker config created"
+            '''
+
+            echo "Building and pushing task-executor to ${env.REGISTRY}:task-executor.${env.IMAGE_TAG}"
+            sh """
+              set -e
+              set -x
+              echo "Checking context for task-executor"
+              ls -la "\${WORKSPACE}/apps/task-executor" || echo "Context not found"
+              echo "Contents of context:"
+              ls -la "\${WORKSPACE}/apps/task-executor/" || echo "Failed to list"
+              echo "Dockerfile exists:"
+              cat "\${WORKSPACE}/apps/task-executor/Dockerfile" || echo "Dockerfile not found"
+              echo "Contents of Dockerfile:"
+              cat "\${WORKSPACE}/apps/task-executor/Dockerfile" || echo "Failed to cat"
+              echo "Running Kaniko for task-executor"
+              /kaniko/executor \
+                --context="\${WORKSPACE}/apps/task-executor" \
+                --dockerfile="\${WORKSPACE}/apps/task-executor/Dockerfile" \
+                --destination="${env.REGISTRY}:task-executor.${env.IMAGE_TAG}" \
+                --snapshotMode=redo \
+                --verbosity=debug
+              echo "Finished pushing task-executor"
+            """
+          }
+        }
       }
     }
 
     stage('Build ui-service') {
       steps {
-        script buildScript('ui-service')
+        container('kaniko') {
+          withCredentials([usernamePassword(
+            credentialsId: 'dockerhub-credentials',
+            usernameVariable: 'DOCKER_USER',
+            passwordVariable: 'DOCKER_PASS'
+          )]) {
+            sh '''
+              set -e
+              set -x
+              echo "WORKSPACE=$WORKSPACE"
+              echo "Setting up Docker config for Kaniko"
+              mkdir -p /kaniko/.docker
+              AUTH=$(echo -n "${DOCKER_USER}:${DOCKER_PASS}" | base64)
+              echo "Auth length: ${#AUTH}"
+              cat > /kaniko/.docker/config.json <<EOF
+              {
+                "auths": {
+                  "https://index.docker.io/v1/": {
+                    "auth": "$AUTH"
+                  }
+                }
+              }
+              EOF
+              echo "Docker config created"
+            '''
+
+            echo "Building and pushing ui-service to ${env.REGISTRY}:ui-service.${env.IMAGE_TAG}"
+            sh """
+              set -e
+              set -x
+              echo "Checking context for ui-service"
+              ls -la "\${WORKSPACE}/apps/ui-service" || echo "Context not found"
+              echo "Contents of context:"
+              ls -la "\${WORKSPACE}/apps/ui-service/" || echo "Failed to list"
+              echo "Dockerfile exists:"
+              cat "\${WORKSPACE}/apps/ui-service/Dockerfile" || echo "Dockerfile not found"
+              echo "Contents of Dockerfile:"
+              cat "\${WORKSPACE}/apps/ui-service/Dockerfile" || echo "Failed to cat"
+              echo "Running Kaniko for ui-service"
+              /kaniko/executor \
+                --context="\${WORKSPACE}/apps/ui-service" \
+                --dockerfile="\${WORKSPACE}/apps/ui-service/Dockerfile" \
+                --destination="${env.REGISTRY}:ui-service.${env.IMAGE_TAG}" \
+                --snapshotMode=redo \
+                --verbosity=debug
+              echo "Finished pushing ui-service"
+            """
+          }
+        }
       }
     }
 
