@@ -41,6 +41,7 @@ node('k8s-agent-alex-default') {
             --dockerfile="\${WORKSPACE}/apps/${svc}/Dockerfile" \
             --destination="${env.REGISTRY}:${svc}.${env.IMAGE_TAG}" \
             --snapshotMode=redo \
+            --use-new-run \
             --verbosity=debug
         """
       }
