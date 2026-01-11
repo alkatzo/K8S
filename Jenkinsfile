@@ -21,19 +21,12 @@ pipeline {
       steps {
         script {
           def envProps = readProperties file: '.env'
-          def segmentPattern = ~/^[a-zA-Z0-9]+((\.|_|__|-+)[a-zA-Z0-9]+)*$/
-          def isValidRepo = { String repo ->
-            if (!repo) return false
-            def parts = repo.split('/')
-            return parts.every { it ==~ segmentPattern }
-          }
           def reg = envProps.get('REGISTRY', '').trim()
           def tag = envProps.get('IMAGE_TAG', '').trim()
           def proj = envProps.get('COMPOSE_PROJECT_NAME', '').trim()
-          echo "Read from .env: REGISTRY='${reg}', IMAGE_TAG='${tag}', COMPOSE_PROJECT_NAME='${proj}'"
-          env.REGISTRY = isValidRepo(reg) ? reg : 'alkatzo/deployment'
-          env.IMAGE_TAG = (tag && tag ==~ segmentPattern) ? tag : env.IMAGE_TAG
-          env.COMPOSE_PROJECT_NAME = proj ?: 'tasks'
+          env.REGISTRY = reg
+          env.IMAGE_TAG = tag
+          env.COMPOSE_PROJECT_NAME = proj
           echo "Using REGISTRY=${env.REGISTRY}, IMAGE_TAG=${env.IMAGE_TAG}, COMPOSE_PROJECT_NAME=${env.COMPOSE_PROJECT_NAME}"
           // Add more variables as needed from .env
         }
