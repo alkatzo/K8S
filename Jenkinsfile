@@ -52,6 +52,8 @@ pipeline {
               ls -la "\${WORKSPACE}/apps/${service}/" || echo "Failed to list"
               echo "Dockerfile exists:"
               cat "\${WORKSPACE}/apps/${service}/Dockerfile" || echo "Dockerfile not found"
+              echo "Contents of Dockerfile:"
+              cat "\${WORKSPACE}/apps/${service}/Dockerfile" || echo "Failed to cat"
               echo "Running Kaniko for ${service}"
               /kaniko/executor \
                 --context="\${WORKSPACE}/apps/${service}" \
