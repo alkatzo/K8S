@@ -9,6 +9,8 @@ pipeline {
   environment {
     REGISTRY_CREDENTIALS = "dockerhub-credentials"
     IMAGE_TAG = "${BUILD_NUMBER}"
+    DOCKER_HOST = "unix:///var/run/docker.sock"
+    DOCKER_TLS_CERTDIR = ""
   }
 
   options {
@@ -41,6 +43,14 @@ pipeline {
     stage('Build & Push images') {
       steps {
         script {
+          sh '''
+            # Start dockerd if not already running (Docker-in-Docker)
+            if ! pgrep -x dockerd >/dev/null; then
+              nohup dockerd-entrypoint.sh --host=unix:///var/run/docker.sock --storage-driver=overlay2 >/tmp/dind.log 2>&1 &
+              sleep 6
+            fi
+            docker info
+          '''
           docker.withRegistry('https://index.docker.io/v1/', REGISTRY_CREDENTIALS) {
             parallel(
               'Build job-a': {
