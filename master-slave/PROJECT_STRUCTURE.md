@@ -24,7 +24,7 @@ master-slave/
 │   ├── requirements.txt               # Python dependencies
 │   └── Dockerfile                     # Container image
 │
-├── task-executor-service/             # Service that executes tasks
+├── task-executor/             # Service that executes tasks
 │   ├── app.py                         # Python polling service
 │   ├── requirements.txt               # Python dependencies
 │   └── Dockerfile                     # Container image

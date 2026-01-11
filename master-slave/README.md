@@ -52,7 +52,7 @@ docker build -t job-b:latest ./job-b
 docker build -t job-c:latest ./job-c
 
 # Build Task Executor
-docker build -t task-executor:latest ./task-executor-service
+docker build -t task-executor:latest ./task-executor
 ```
 
 **For Minikube users:**
