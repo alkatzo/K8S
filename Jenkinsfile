@@ -1,16 +1,9 @@
 pipeline {
-  agent {
-    docker {
-      image 'docker:24-dind'
-      args '--privileged --tmpfs /run --tmpfs /var/run -v /var/lib/docker'
-    }
-  }
+  agent any
 
   environment {
     REGISTRY_CREDENTIALS = "dockerhub-credentials"
     IMAGE_TAG = "${BUILD_NUMBER}"
-    DOCKER_HOST = "unix:///var/run/docker.sock"
-    DOCKER_TLS_CERTDIR = ""
   }
 
   options {
@@ -43,18 +36,6 @@ pipeline {
     stage('Build & Push images') {
       steps {
         script {
-          sh '''
-            # Start dockerd if not already running (Docker-in-Docker)
-            if ! pgrep -x dockerd >/dev/null; then
-              nohup dockerd-entrypoint.sh --host=unix:///var/run/docker.sock --storage-driver=overlay2 >/tmp/dind.log 2>&1 &
-              sleep 8
-            fi
-            if ! docker info; then
-              echo "---- dockerd log ----"
-              cat /tmp/dind.log || true
-              exit 1
-            fi
-          '''
           docker.withRegistry('https://index.docker.io/v1/', REGISTRY_CREDENTIALS) {
             parallel(
               'Build job-a': {
