@@ -6,6 +6,7 @@ node('k8s-agent-alex-default') {
 
   stage('Checkout') {
     checkout scm
+    stash name: 'source', includes: '**/*'
   }
 
   stage('Load Env') {
@@ -49,8 +50,11 @@ node('k8s-agent-alex-default') {
     def branches = [:]
     services.each { svc ->
       branches["Build ${svc}"] = {
-        echo "Building ${svc}"
-        buildService(svc)
+        ws("${env.WORKSPACE}@${svc}") {
+          unstash 'source'
+          echo "Building ${svc}"
+          buildService(svc)
+        }
       }
     }
     parallel branches
