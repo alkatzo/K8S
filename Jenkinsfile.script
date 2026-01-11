@@ -1,0 +1,71 @@
+node('k8s-agent-alex-default') {
+
+  properties([
+    parameters([booleanParam(name: 'DEPLOY', defaultValue: false, description: 'Deploy after build')])
+  ])
+
+  stage('Checkout') {
+    checkout scm
+  }
+
+  stage('Load Env') {
+    def envProps = readProperties file: '.env'
+    env.REGISTRY = envProps.get('REGISTRY', '').trim()
+    env.IMAGE_TAG = envProps.get('IMAGE_TAG', '').trim() ?: "${env.BRANCH_NAME.replace('/', '-')}-${env.BUILD_NUMBER}"
+    env.COMPOSE_PROJECT_NAME = envProps.get('COMPOSE_PROJECT_NAME', '').trim()
+    echo "Using REGISTRY=${env.REGISTRY}, IMAGE_TAG=${env.IMAGE_TAG}, COMPOSE_PROJECT_NAME=${env.COMPOSE_PROJECT_NAME}"
+  }
+
+  def buildService = { svc ->
+    container('kaniko') {
+      withCredentials([usernamePassword(
+        credentialsId: 'dockerhub-credentials',
+        usernameVariable: 'DOCKER_USER',
+        passwordVariable: 'DOCKER_PASS'
+      )]) {
+        sh '''
+          set -e
+          mkdir -p /kaniko/.docker
+          AUTH=$(echo -n "${DOCKER_USER}:${DOCKER_PASS}" | base64)
+          cat > /kaniko/.docker/config.json <<EOF
+          { "auths": { "https://index.docker.io/v1/": { "auth": "$AUTH" } } }
+          EOF
+        '''
+        sh """
+          set -e
+          /kaniko/executor \
+            --context="\${WORKSPACE}/apps/${svc}" \
+            --dockerfile="\${WORKSPACE}/apps/${svc}/Dockerfile" \
+            --destination="${env.REGISTRY}:${svc}.${env.IMAGE_TAG}" \
+            --snapshotMode=redo \
+            --verbosity=debug
+        """
+      }
+    }
+  }
+
+  stage('Build & Push') {
+    // Sequential; change to parallel for concurrency
+    ['job-a', 'job-b', 'job-c', 'task-executor', 'ui-service'].each { svc ->
+      echo "Building ${svc}"
+      buildService(svc)
+    }
+  }
+
+  stage('Deploy') {
+    when {
+      anyOf {
+        branch 'main'
+        expression { params.DEPLOY }
+      }
+    }
+    node {
+      sh """
+        set -e
+        export IMAGE_TAG=${env.IMAGE_TAG}
+        docker compose pull || true
+        docker compose up -d --remove-orphans
+      """
+    }
+  }
+}
