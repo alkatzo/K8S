@@ -1,9 +1,13 @@
 pipeline {
   agent { label 'k8s-agent-alex-default' }
 
+  parameters {
+    booleanParam(name: 'DEPLOY', defaultValue: false, description: 'Deploy after build')
+  }
+
   environment {
     REGISTRY_CREDENTIALS = "dockerhub-credentials"
-    IMAGE_TAG = "${BUILD_NUMBER}"
+    IMAGE_TAG = "${BRANCH_NAME}-${BUILD_NUMBER}"
   }
 
   options {
@@ -25,7 +29,7 @@ pipeline {
           def tag = envProps.get('IMAGE_TAG', '').trim()
           def proj = envProps.get('COMPOSE_PROJECT_NAME', '').trim()
           env.REGISTRY = reg
-          env.IMAGE_TAG = tag
+          env.IMAGE_TAG = tag ?: "${env.BRANCH_NAME.replace('/', '-')}-${env.BUILD_NUMBER}"
           env.COMPOSE_PROJECT_NAME = proj
           echo "Using REGISTRY=${env.REGISTRY}, IMAGE_TAG=${env.IMAGE_TAG}, COMPOSE_PROJECT_NAME=${env.COMPOSE_PROJECT_NAME}"
           // Add more variables as needed from .env
@@ -98,6 +102,12 @@ pipeline {
 
     stage('Deploy with docker-compose') {
       agent any
+      when {
+        anyOf {
+          branch 'main'
+          expression { params.DEPLOY }
+        }
+      }
       steps {
         sh '''
           set -e
