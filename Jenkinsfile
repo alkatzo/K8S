@@ -37,71 +37,86 @@ pipeline {
       }
     }
 
-    // stage('Build & Push images') {
-    //   steps {
-    //     script {
-    //       container('kaniko') {
-    //         withCredentials([usernamePassword(
-    //           credentialsId: REGISTRY_CREDENTIALS,
-    //           usernameVariable: 'DOCKER_USER',
-    //           passwordVariable: 'DOCKER_PASS'
-    //         )]) {
-    //           echo "Building and pushing to ${REGISTRY}:ui-service.${IMAGE_TAG}"
-    //           sh '''
-    //             set -e
-
-    //             # Create Docker config for Kaniko
-    //             mkdir -p /kaniko/.docker
-    //             cat > /kaniko/.docker/config.json <<EOF
-    //             {
-    //               "auths": {
-    //                 "https://index.docker.io/v1/": {
-    //                   "auth": "$(echo -n "${DOCKER_USER}:${DOCKER_PASS}" | base64)"
-    //                 }
-    //               }
-    //             }
-    //             EOF
-
-    //             # Build and push ui-service image with Kaniko
-    //             /kaniko/executor \
-    //               --context="${WORKSPACE}/apps/ui-service" \
-    //               --dockerfile="${WORKSPACE}/apps/ui-service/Dockerfile" \
-    //               --destination="${REGISTRY}:ui-service.${IMAGE_TAG}" \
-    //               --snapshotMode=redo \
-    //               --verbosity=info
-    //           '''
-    //         }
-    //       }
-    //     }
-    //   }
-    // }
-
     stage('Build & Push images') {
-      agent any
       steps {
         script {
-          docker.withRegistry('https://index.docker.io/v1/', REGISTRY_CREDENTIALS) {
-            parallel(
-              'Build job-a': {
-                docker.build("${REGISTRY}:job-a.${IMAGE_TAG}", 'apps/job-a').push()
-              },
-              'Build job-b': {
-                docker.build("${REGISTRY}:job-b.${IMAGE_TAG}", 'apps/job-b').push()
-              },
-              'Build job-c': {
-                docker.build("${REGISTRY}:job-c.${IMAGE_TAG}", 'apps/job-c').push()
-              },
-              'Build task-executor': {
-                docker.build("${REGISTRY}:task-executor.${IMAGE_TAG}", 'apps/task-executor-service').push()
-              },
-              'Build ui-service': {
-                docker.build("${REGISTRY}:ui-service.${IMAGE_TAG}", 'apps/ui-service').push()
-              }
-            )
+          container('kaniko') {
+             withCredentials([usernamePassword(
+               credentialsId: REGISTRY_CREDENTIALS,
+               usernameVariable: 'DOCKER_USER',
+               passwordVariable: 'DOCKER_PASS'
+             )]) {
+               sh '''
+                 set -e
+                 set -x
+                 echo "WORKSPACE=$WORKSPACE"
+                 echo "Setting up Docker config for Kaniko"
+                 mkdir -p /kaniko/.docker
+                 AUTH=$(echo -n "${DOCKER_USER}:${DOCKER_PASS}" | base64)
+                 echo "Auth length: ${#AUTH}"
+                 cat > /kaniko/.docker/config.json <<EOF
+                 {
+                   "auths": {
+                     "https://index.docker.io/v1/": {
+                       "auth": "$AUTH"
+                     }
+                   }
+                 }
+                 EOF
+                 echo "Docker config created"
+               '''
+ 
+               echo "Building and pushing ui-service to ${REGISTRY}:ui-service.${IMAGE_TAG}"
+               sh '''
+                 set -e
+                 set -x
+                 echo "Checking context for ui-service"
+                 ls -la "${WORKSPACE}/apps/ui-service" || echo "Context not found"
+                 echo "Contents of context:"
+                 ls -la "${WORKSPACE}/apps/ui-service/" || echo "Failed to list"
+                 echo "Dockerfile exists:"
+                 cat "${WORKSPACE}/apps/ui-service/Dockerfile" || echo "Dockerfile not found"
+                 echo "Running Kaniko for ui-service"
+                 /kaniko/executor \
+                   --context="${WORKSPACE}/apps/ui-service" \
+                   --dockerfile="${WORKSPACE}/apps/ui-service/Dockerfile" \
+                   --destination="${REGISTRY}:ui-service.${IMAGE_TAG}" \
+                   --snapshotMode=redo \
+                   --verbosity=debug
+                 echo "Finished pushing ui-service"
+               '''
+             }
           }
         }
       }
     }
+
+    // stage('Build & Push images') {
+    //   agent any
+    //   steps {
+    //     script {
+    //       docker.withRegistry('https://index.docker.io/v1/', REGISTRY_CREDENTIALS) {
+    //         parallel(
+    //           'Build job-a': {
+    //             docker.build("${REGISTRY}:job-a.${IMAGE_TAG}", 'apps/job-a').push()
+    //           },
+    //           'Build job-b': {
+    //             docker.build("${REGISTRY}:job-b.${IMAGE_TAG}", 'apps/job-b').push()
+    //           },
+    //           'Build job-c': {
+    //             docker.build("${REGISTRY}:job-c.${IMAGE_TAG}", 'apps/job-c').push()
+    //           },
+    //           'Build task-executor': {
+    //             docker.build("${REGISTRY}:task-executor.${IMAGE_TAG}", 'apps/task-executor-service').push()
+    //           },
+    //           'Build ui-service': {
+    //             docker.build("${REGISTRY}:ui-service.${IMAGE_TAG}", 'apps/ui-service').push()
+    //           }
+    //         )
+    //       }
+    //     }
+    //   }
+    // }
 
     stage('Deploy with docker-compose') {
       agent any
