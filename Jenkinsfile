@@ -37,11 +37,35 @@ pipeline {
       }
     }
 
-    stage('Build & Push images') {
-      steps {
-        script {
-          // Define a function to build and push a service
-          def buildService = { service ->
+    // Define a function to build and push a service
+    def buildScript = { service ->
+      return {
+        container('kaniko') {
+          withCredentials([usernamePassword(
+            credentialsId: REGISTRY_CREDENTIALS,
+            usernameVariable: 'DOCKER_USER',
+            passwordVariable: 'DOCKER_PASS'
+          )]) {
+            sh '''
+              set -e
+              set -x
+              echo "WORKSPACE=$WORKSPACE"
+              echo "Setting up Docker config for Kaniko"
+              mkdir -p /kaniko/.docker
+              AUTH=$(echo -n "${DOCKER_USER}:${DOCKER_PASS}" | base64)
+              echo "Auth length: ${#AUTH}"
+              cat > /kaniko/.docker/config.json <<EOF
+              {
+                "auths": {
+                  "https://index.docker.io/v1/": {
+                    "auth": "$AUTH"
+                  }
+                }
+              }
+              EOF
+              echo "Docker config created"
+            '''
+
             echo "Building and pushing ${service} to ${REGISTRY}:${service}.${IMAGE_TAG}"
             sh """
               set -e
@@ -64,54 +88,37 @@ pipeline {
               echo "Finished pushing ${service}"
             """
           }
-
-          container('kaniko') {
-            withCredentials([usernamePassword(
-              credentialsId: REGISTRY_CREDENTIALS,
-              usernameVariable: 'DOCKER_USER',
-              passwordVariable: 'DOCKER_PASS'
-            )]) {
-              sh '''
-                set -e
-                set -x
-                echo "WORKSPACE=$WORKSPACE"
-                echo "Setting up Docker config for Kaniko"
-                mkdir -p /kaniko/.docker
-                AUTH=$(echo -n "${DOCKER_USER}:${DOCKER_PASS}" | base64)
-                echo "Auth length: ${#AUTH}"
-                cat > /kaniko/.docker/config.json <<EOF
-                {
-                  "auths": {
-                    "https://index.docker.io/v1/": {
-                      "auth": "$AUTH"
-                    }
-                  }
-                }
-                EOF
-                echo "Docker config created"
-              '''
-
-              // Build and push all images in parallel
-              parallel(
-                'Build job-a': {
-                  buildService('job-a')
-                },
-                'Build job-b': {
-                  buildService('job-b')
-                },
-                'Build job-c': {
-                  buildService('job-c')
-                },
-                'Build task-executor': {
-                  buildService('task-executor')
-                },
-                'Build ui-service': {
-                  buildService('ui-service')
-                }
-              )
-            }
-          }
         }
+      }
+    }
+
+    stage('Build job-a') {
+      steps {
+        script buildScript('job-a')
+      }
+    }
+
+    stage('Build job-b') {
+      steps {
+        script buildScript('job-b')
+      }
+    }
+
+    stage('Build job-c') {
+      steps {
+        script buildScript('job-c')
+      }
+    }
+
+    stage('Build task-executor') {
+      steps {
+        script buildScript('task-executor')
+      }
+    }
+
+    stage('Build ui-service') {
+      steps {
+        script buildScript('ui-service')
       }
     }
 
