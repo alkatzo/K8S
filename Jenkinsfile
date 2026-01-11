@@ -1,3 +1,58 @@
+// Define a function to build and push a service
+def buildScript = { service ->
+  return {
+    container('kaniko') {
+      withCredentials([usernamePassword(
+        credentialsId: 'dockerhub-credentials',
+        usernameVariable: 'DOCKER_USER',
+        passwordVariable: 'DOCKER_PASS'
+      )]) {
+        sh '''
+          set -e
+          set -x
+          echo "WORKSPACE=$WORKSPACE"
+          echo "Setting up Docker config for Kaniko"
+          mkdir -p /kaniko/.docker
+          AUTH=$(echo -n "${DOCKER_USER}:${DOCKER_PASS}" | base64)
+          echo "Auth length: ${#AUTH}"
+          cat > /kaniko/.docker/config.json <<EOF
+          {
+            "auths": {
+              "https://index.docker.io/v1/": {
+                "auth": "$AUTH"
+              }
+            }
+          }
+          EOF
+          echo "Docker config created"
+        '''
+
+        echo "Building and pushing ${service} to ${env.REGISTRY}:${service}.${env.IMAGE_TAG}"
+        sh """
+          set -e
+          set -x
+          echo "Checking context for ${service}"
+          ls -la "\${WORKSPACE}/apps/${service}" || echo "Context not found"
+          echo "Contents of context:"
+          ls -la "\${WORKSPACE}/apps/${service}/" || echo "Failed to list"
+          echo "Dockerfile exists:"
+          cat "\${WORKSPACE}/apps/${service}/Dockerfile" || echo "Dockerfile not found"
+          echo "Contents of Dockerfile:"
+          cat "\${WORKSPACE}/apps/${service}/Dockerfile" || echo "Failed to cat"
+          echo "Running Kaniko for ${service}"
+          /kaniko/executor \
+            --context="\${WORKSPACE}/apps/${service}" \
+            --dockerfile="\${WORKSPACE}/apps/${service}/Dockerfile" \
+            --destination="${env.REGISTRY}:${service}.${env.IMAGE_TAG}" \
+            --snapshotMode=redo \
+            --verbosity=debug
+          echo "Finished pushing ${service}"
+        """
+      }
+    }
+  }
+}
+
 pipeline {
   agent { label 'k8s-agent-alex-default' }
 
