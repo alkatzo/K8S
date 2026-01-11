@@ -1,5 +1,5 @@
 pipeline {
-  agent { label 'k8s-agent' }
+  agent { label 'k8s-agent-alex-default' }
 
   environment {
     REGISTRY_CREDENTIALS = "dockerhub-credentials"
