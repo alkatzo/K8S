@@ -50,17 +50,13 @@ node('k8s-agent-alex-default') {
 
   stage('Build & Push') {
     def services = ['job-a', 'job-b', 'job-c', 'task-executor', 'ui-service']
-    def branches = [:]
     services.each { svc ->
-      branches["Build ${svc}"] = {
-        ws("${env.WORKSPACE}@${svc}") {
-          unstash 'source'
-          echo "Building ${svc}"
-          buildService(svc)
-        }
+      ws("${env.WORKSPACE}@${svc}") {
+        unstash 'source'
+        echo "Building ${svc}"
+        buildService(svc)
       }
     }
-    parallel branches
   }
 
   if (env.BRANCH_NAME == 'main' || params.DEPLOY) {
