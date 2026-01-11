@@ -2,10 +2,8 @@ pipeline {
   agent any
 
   environment {
-    REGISTRY = "alkatzo/deployment"
     REGISTRY_CREDENTIALS = "dockerhub-credentials"
     IMAGE_TAG = "${BUILD_NUMBER}"
-    COMPOSE_PROJECT_NAME = "task-system"
   }
 
   options {
@@ -16,6 +14,18 @@ pipeline {
     stage('Checkout') {
       steps {
         checkout scm
+      }
+    }
+
+    stage('Load Environment Variables') {
+      steps {
+        script {
+          def envProps = readProperties file: '.env'
+          env.REGISTRY = envProps.get('REGISTRY', env.REGISTRY)
+          env.IMAGE_TAG = envProps.get('IMAGE_TAG', env.IMAGE_TAG)
+          env.COMPOSE_PROJECT_NAME = envProps.get('COMPOSE_PROJECT_NAME', env.COMPOSE_PROJECT_NAME)
+          // Add more variables as needed from .env
+        }
       }
     }
 
@@ -37,7 +47,6 @@ pipeline {
       steps {
         sh '''
           set -e
-          export REGISTRY=${REGISTRY}
           export IMAGE_TAG=${IMAGE_TAG}
           docker compose pull || true
           docker compose up -d

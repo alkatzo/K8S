@@ -63,7 +63,6 @@ services:
 
   task-executor-slave:
     <<: *app-base
-    build: ./apps/task-executor-service
     image: ${REGISTRY:-alkatzo/deployment}:task-executor.${IMAGE_TAG:-local}
     tty: true
     environment:
@@ -78,7 +77,7 @@ services:
     build: ./apps/ui-service
     image: ${REGISTRY:-alkatzo/deployment}:ui-service.${IMAGE_TAG:-local}
     ports:
-      - "8080:8080"
+      - "${UI_HOST_PORT:-8080}:8080"
     tty: true
     environment:
       <<: *app-env
@@ -137,7 +136,6 @@ services:
 
   job-a-slave:
     <<: *app-base
-    build: ./apps/job-a
     image: ${REGISTRY:-alkatzo/deployment}:job-a.${IMAGE_TAG:-local}
     tty: true
     environment:
@@ -151,7 +149,6 @@ services:
 
   job-b-slave:
     <<: *app-base
-    build: ./apps/job-b
     image: ${REGISTRY:-alkatzo/deployment}:job-b.${IMAGE_TAG:-local}
     tty: true
     environment:
@@ -165,7 +162,6 @@ services:
 
   job-c-slave:
     <<: *app-base
-    build: ./apps/job-c
     image: ${REGISTRY:-alkatzo/deployment}:job-c.${IMAGE_TAG:-local}
     tty: true
     environment:
