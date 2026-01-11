@@ -14,7 +14,7 @@ docker push ${REGISTRY}/${REPO_NAME}:job-b-latest
 docker build -t ${REGISTRY}/${REPO_NAME}:job-c-latest ./job-c
 docker push ${REGISTRY}/${REPO_NAME}:job-c-latest
 
-docker build -t ${REGISTRY}/${REPO_NAME}:task-executor-latest ./task-executor-service
+docker build -t ${REGISTRY}/${REPO_NAME}:task-executor-latest ./task-executor
 docker push ${REGISTRY}/${REPO_NAME}:task-executor-latest
 
 docker build -t ${REGISTRY}/${REPO_NAME}:ui-service-latest ./ui-service

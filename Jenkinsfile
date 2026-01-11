@@ -47,15 +47,15 @@ pipeline {
               set -e
               set -x
               echo "Checking context for ${service}"
-              ls -la "\${WORKSPACE}/apps/${service == 'task-executor' ? 'task-executor-service' : service}" || echo "Context not found"
+              ls -la "\${WORKSPACE}/apps/${service}" || echo "Context not found"
               echo "Contents of context:"
-              ls -la "\${WORKSPACE}/apps/${service == 'task-executor' ? 'task-executor-service' : service}/" || echo "Failed to list"
+              ls -la "\${WORKSPACE}/apps/${service}/" || echo "Failed to list"
               echo "Dockerfile exists:"
-              cat "\${WORKSPACE}/apps/${service == 'task-executor' ? 'task-executor-service' : service}/Dockerfile" || echo "Dockerfile not found"
+              cat "\${WORKSPACE}/apps/${service}/Dockerfile" || echo "Dockerfile not found"
               echo "Running Kaniko for ${service}"
               /kaniko/executor \
-                --context="\${WORKSPACE}/apps/${service == 'task-executor' ? 'task-executor-service' : service}" \
-                --dockerfile="\${WORKSPACE}/apps/${service == 'task-executor' ? 'task-executor-service' : service}/Dockerfile" \
+                --context="\${WORKSPACE}/apps/${service}" \
+                --dockerfile="\${WORKSPACE}/apps/${service}/Dockerfile" \
                 --destination="${REGISTRY}:${service}.${IMAGE_TAG}" \
                 --snapshotMode=redo \
                 --verbosity=debug
@@ -129,7 +129,7 @@ pipeline {
     //             docker.build("${REGISTRY}:job-c.${IMAGE_TAG}", 'apps/job-c').push()
     //           },
     //           'Build task-executor': {
-    //             docker.build("${REGISTRY}:task-executor.${IMAGE_TAG}", 'apps/task-executor-service').push()
+    //             docker.build("${REGISTRY}:task-executor.${IMAGE_TAG}", 'apps/task-executor').push()
     //           },
     //           'Build ui-service': {
     //             docker.build("${REGISTRY}:ui-service.${IMAGE_TAG}", 'apps/ui-service').push()

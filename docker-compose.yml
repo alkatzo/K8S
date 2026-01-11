@@ -51,7 +51,7 @@ services:
 
   task-executor-master:
     <<: *app-base
-    build: ./apps/task-executor-service
+    build: ./apps/task-executor
     image: ${REGISTRY}:task-executor.${IMAGE_TAG:-local}
     tty: true
     environment:
