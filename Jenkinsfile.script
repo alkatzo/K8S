@@ -45,21 +45,19 @@ node('k8s-agent-alex-default') {
   }
 
   stage('Build & Push') {
-    // Sequential; change to parallel for concurrency
-    ['job-a', 'job-b', 'job-c', 'task-executor', 'ui-service'].each { svc ->
-      echo "Building ${svc}"
-      buildService(svc)
-    }
-  }
-
-  stage('Deploy') {
-    when {
-      anyOf {
-        branch 'main'
-        expression { params.DEPLOY }
+    def services = ['job-a', 'job-b', 'job-c', 'task-executor', 'ui-service']
+    def branches = [:]
+    services.each { svc ->
+      branches["Build ${svc}"] = {
+        echo "Building ${svc}"
+        buildService(svc)
       }
     }
-    node {
+    parallel branches
+  }
+
+  if (env.BRANCH_NAME == 'main' || params.DEPLOY) {
+    stage('Deploy') {
       sh """
         set -e
         export IMAGE_TAG=${env.IMAGE_TAG}
