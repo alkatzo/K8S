@@ -1,5 +1,10 @@
 pipeline {
-  agent any
+  agent {
+    docker {
+      image 'docker:dind'
+      args '-v /var/run/docker.sock:/var/run/docker.sock'
+    }
+  }
 
   environment {
     REGISTRY_CREDENTIALS = "dockerhub-credentials"
@@ -37,11 +42,23 @@ pipeline {
       steps {
         script {
           docker.withRegistry('https://index.docker.io/v1/', REGISTRY_CREDENTIALS) {
-            docker.build("${REGISTRY}:job-a.${IMAGE_TAG}",          'apps/job-a').push()
-            docker.build("${REGISTRY}:job-b.${IMAGE_TAG}",          'apps/job-b').push()
-            docker.build("${REGISTRY}:job-c.${IMAGE_TAG}",          'apps/job-c').push()
-            docker.build("${REGISTRY}:task-executor.${IMAGE_TAG}",  'apps/task-executor-service').push()
-            docker.build("${REGISTRY}:ui-service.${IMAGE_TAG}",     'apps/ui-service').push()
+            parallel(
+              'Build job-a': {
+                docker.build("${REGISTRY}:job-a.${IMAGE_TAG}", 'apps/job-a').push()
+              },
+              'Build job-b': {
+                docker.build("${REGISTRY}:job-b.${IMAGE_TAG}", 'apps/job-b').push()
+              },
+              'Build job-c': {
+                docker.build("${REGISTRY}:job-c.${IMAGE_TAG}", 'apps/job-c').push()
+              },
+              'Build task-executor': {
+                docker.build("${REGISTRY}:task-executor.${IMAGE_TAG}", 'apps/task-executor-service').push()
+              },
+              'Build ui-service': {
+                docker.build("${REGISTRY}:ui-service.${IMAGE_TAG}", 'apps/ui-service').push()
+              }
+            )
           }
         }
       }
