@@ -46,6 +46,7 @@ pipeline {
               usernameVariable: 'DOCKER_USER',
               passwordVariable: 'DOCKER_PASS'
             )]) {
+              echo "Building and pushing to ${REGISTRY}:ui-service.${IMAGE_TAG}"
               sh '''
                 set -e
 
@@ -62,7 +63,6 @@ pipeline {
                 EOF
 
                 # Build and push ui-service image with Kaniko
-                echo "Building and pushing to ${REGISTRY}:ui-service.${IMAGE_TAG}"
                 /kaniko/executor \
                   --context="${WORKSPACE}/apps/ui-service" \
                   --dockerfile="${WORKSPACE}/apps/ui-service/Dockerfile" \
